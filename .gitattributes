@@ -1,0 +1,59 @@
+# Finales de línea automáticos para texto
+* text=auto
+
+# ---- Archivos de Unity (texto YAML): se fusionan con UnityYAMLMerge (Smart Merge)
+*.unity       merge=unityyamlmerge eol=lf linguist-generated
+*.prefab      merge=unityyamlmerge eol=lf linguist-generated
+*.asset       merge=unityyamlmerge eol=lf linguist-generated
+*.mat         merge=unityyamlmerge eol=lf linguist-generated
+*.anim        merge=unityyamlmerge eol=lf linguist-generated
+*.controller  merge=unityyamlmerge eol=lf linguist-generated
+*.overrideController merge=unityyamlmerge eol=lf linguist-generated
+*.physicMaterial merge=unityyamlmerge eol=lf linguist-generated
+*.mixer       merge=unityyamlmerge eol=lf linguist-generated
+*.meta        merge=unityyamlmerge eol=lf linguist-generated
+
+# ---- Código
+*.cs     text diff=csharp
+*.shader text
+*.hlsl   text
+*.json   text
+*.md     text
+
+# ---- Archivos grandes y binarios: Git LFS
+# Blender y modelos
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.fbx   filter=lfs diff=lfs merge=lfs -text
+*.FBX   filter=lfs diff=lfs merge=lfs -text
+*.obj   filter=lfs diff=lfs merge=lfs -text
+*.glb   filter=lfs diff=lfs merge=lfs -text
+*.gltf  filter=lfs diff=lfs merge=lfs -text
+# Texturas e imágenes
+*.png   filter=lfs diff=lfs merge=lfs -text
+*.jpg   filter=lfs diff=lfs merge=lfs -text
+*.jpeg  filter=lfs diff=lfs merge=lfs -text
+*.tga   filter=lfs diff=lfs merge=lfs -text
+*.tif   filter=lfs diff=lfs merge=lfs -text
+*.tiff  filter=lfs diff=lfs merge=lfs -text
+*.psd   filter=lfs diff=lfs merge=lfs -text
+*.exr   filter=lfs diff=lfs merge=lfs -text
+*.hdr   filter=lfs diff=lfs merge=lfs -text
+*.kra   filter=lfs diff=lfs merge=lfs -text
+*.spp   filter=lfs diff=lfs merge=lfs -text
+*.sbsar filter=lfs diff=lfs merge=lfs -text
+# Audio y vídeo
+*.wav   filter=lfs diff=lfs merge=lfs -text
+*.mp3   filter=lfs diff=lfs merge=lfs -text
+*.ogg   filter=lfs diff=lfs merge=lfs -text
+*.aif   filter=lfs diff=lfs merge=lfs -text
+*.mp4   filter=lfs diff=lfs merge=lfs -text
+*.mov   filter=lfs diff=lfs merge=lfs -text
+# Fuentes y documentos
+*.ttf   filter=lfs diff=lfs merge=lfs -text
+*.otf   filter=lfs diff=lfs merge=lfs -text
+*.pdf   filter=lfs diff=lfs merge=lfs -text
+*.zip   filter=lfs diff=lfs merge=lfs -text
+
+# ---- Scripts de ayuda
+*.bat text eol=crlf
+*.sh  text eol=lf
