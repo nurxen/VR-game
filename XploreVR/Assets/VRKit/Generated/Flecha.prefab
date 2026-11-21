@@ -354,7 +354,7 @@ MonoBehaviour:
   lifetimeAfterHit: 15
   lifetimeInFlight: 10
   trail: {fileID: 82658017970376627}
-  hitSound: {fileID: 0}
+  hitSound: {fileID: 8300000, guid: a7ff9b60b49bebc479583d4ecdd39957, type: 3}
   hitEffectPrefab: {fileID: 0}
   onHit:
     m_PersistentCalls:

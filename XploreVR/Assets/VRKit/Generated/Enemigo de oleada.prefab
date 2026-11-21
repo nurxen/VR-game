@@ -316,10 +316,10 @@ MonoBehaviour:
   destroyDelay: 3
   animator: {fileID: 0}
   audioSource: {fileID: 0}
-  alertSound: {fileID: 0}
-  attackSound: {fileID: 0}
-  hurtSound: {fileID: 0}
-  deathSound: {fileID: 0}
+  alertSound: {fileID: 8300000, guid: 68916a6d4f39417448d2e36e7182a0b7, type: 3}
+  attackSound: {fileID: 8300000, guid: 1a5a1f94368ad73458f96f24ecb5ece4, type: 3}
+  hurtSound: {fileID: 8300000, guid: 37ef359008039f4488ed735f74607022, type: 3}
+  deathSound: {fileID: 8300000, guid: 856eae2d99c39ef4397873b871630e23, type: 3}
   onStateChanged:
     m_PersistentCalls:
       m_Calls: []

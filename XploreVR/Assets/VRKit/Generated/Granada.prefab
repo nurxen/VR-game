@@ -381,8 +381,8 @@ MonoBehaviour:
   throwForceMultiplier: 1.5
   throwSpinMultiplier: 1
   thrownWindow: 3
-  grabSound: {fileID: 0}
-  impactSound: {fileID: 0}
+  grabSound: {fileID: 8300000, guid: 9af3ffde6fbe635459a6bc0285923ae7, type: 3}
+  impactSound: {fileID: 8300000, guid: 2bfc78c10a0508840a21f65678812a84, type: 3}
   impactSoundMinSpeed: 1.5
   grabHaptic: 0.25
   onGrabbed:
@@ -431,8 +431,8 @@ MonoBehaviour:
   force: 12
   hurtsPlayer: 1
   explosionEffect: {fileID: 0}
-  armSound: {fileID: 0}
-  explosionSound: {fileID: 0}
+  armSound: {fileID: 8300000, guid: f42a04589011f7c419a76a448172ad63, type: 3}
+  explosionSound: {fileID: 8300000, guid: 76a7929815354d24e9ae10aeaa289bea, type: 3}
   armedIndicator: {fileID: 3483846897719617493}
   onArmed:
     m_PersistentCalls:

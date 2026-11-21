@@ -229,7 +229,7 @@ MonoBehaviour:
   mouthRadius: 0.13
   emptyPrefab: {fileID: 0}
   objectiveId: 
-  consumeSound: {fileID: 0}
+  consumeSound: {fileID: 8300000, guid: 30679e68e50cfba46808989a8161fbb7, type: 3}
   haptic: 0.4
   onConsumed:
     m_PersistentCalls:

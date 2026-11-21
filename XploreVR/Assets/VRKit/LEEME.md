@@ -1,6 +1,6 @@
 # VRKit — bloques para juegos VR en Unity (Meta Quest 2)
 
-Piezas listas para usar, sea cual sea vuestro juego: **un núcleo básico** que va siempre y **seis módulos opcionales** que añadís o quitáis según el tipo de juego.
+Piezas listas para usar, sea cual sea vuestro juego: **un núcleo básico** que va siempre y **ocho módulos opcionales** que añadís o quitáis según el tipo de juego.
 
 > Escrito para **Unity 6 (6000.0.66f2 o superior) + XR Interaction Toolkit 3.x + OpenXR (Meta Quest)**. Se ha comprobado con un compilador, combinando el núcleo con cada módulo, pero **todavía no se ha probado dentro de Unity ni en las gafas**. Si al importarlo sale un error, copiad el mensaje de la consola y se corrige.
 
@@ -24,14 +24,16 @@ Assets/VRKit/
 │   ├── ArmasADistancia     arco y flechas, pistola, varita, dianas
 │   ├── CuerpoACuerpo       espada, escudo, granadas
 │   ├── Poderes             hechizos, telequinesis, gancho, tiempo bala, portales
-│   └── Enemigos            enemigo a pie, dron volador, oleadas
-├── Ejemplos/               ← campo de entrenamiento completo (necesita TODOS los módulos)
+│   ├── Enemigos            enemigo a pie, dron volador, oleadas
+│   ├── MundoDeBloques      mundo tipo Minecraft: generar, romper, poner, fabricar, día y noche, criaturas
+│   └── MundoAbierto        terreno infinito con biomas, ríos, cuevas, cielo con estrellas, criaturas, guardado por zonas
+├── Ejemplos/               ← campo de entrenamiento completo (usa los seis primeros módulos)
 └── Generated/              (se crea sola) materiales y prefabs de los objetos de ejemplo
 ```
 
 Cada carpeta tiene su propio `LEEME.md` con los detalles: qué hay, cómo se monta y qué tocar.
 
-**Regla de oro:** los módulos **nunca dependen unos de otros**, solo del Básico. Se puede quitar cualquiera borrando su carpeta, o desde **Tools › VRKit › Módulos y tipos de juego**. Ejemplos sí los necesita todos: si quitáis un módulo, quitad también Ejemplos (la ventana lo hace sola).
+**Regla de oro:** los módulos **nunca dependen unos de otros**, solo del Básico. Se puede quitar cualquiera borrando su carpeta, o desde **Tools › VRKit › Módulos y tipos de juego**. Ejemplos usa los seis primeros: si quitáis uno de ellos, quitad también Ejemplos (la ventana lo hace sola).
 
 ---
 
@@ -63,6 +65,8 @@ Detalles: `Basico/LEEME.md`.
 | **Cuerpo a cuerpo** | `MeleeWeapon`, `Shield`, `Grenade` | Espada · Escudo · Granada · Caja de granadas · Muñeco |
 | **Poderes** | `HandCaster`, `Telekinesis`, `GrappleHook`, `TimeController`, `PortalTeleporter` | Hechizos · Telequinesis · Gancho · Tiempo bala · Portales |
 | **Enemigos** | `SimpleEnemy`, `FlyingEnemy`, `WaveSpawner` | Enemigo básico · Dron · Arena de oleadas |
+| **Mundo abierto** | `OpenWorld`, `BiomeProfile`, `TerrainChunk`, `SkyCycle`, `CaveSystem`, `WorldNavMesh`, `CreatureSpawner`, `BiomeAudio`, `WorldDiscovery`… | Mundo abierto completo |
+| **Mundo de bloques** | `VoxelWorld`, `BlockType`, `BlockRegistry`, `VoxelHandTool`, `BlockInventory`, `BlockHotbar`, `VoxelCrafting`, `VoxelGame`, `VoxelPlayer`, `VoxelDayNight`, `VoxelMob`… | Mundo completo (supervivencia o creativo) · Maqueta sobre una mesa |
 
 ---
 
@@ -77,6 +81,8 @@ Detalles: `Basico/LEEME.md`.
 | Cozy / gestión | Objetos, Mecanismos | Coleccionables, mochila, caldero o banco de trabajo, `ProgressSave` |
 | Terror / exploración | Objetos, Mecanismos, Enemigos | Linterna, notas, puertas, `TriggerZone` para sustos |
 | Experiencia narrativa | Solo Básico | Subtítulos, `EventSequence`, `TriggerZone`, fundidos |
+| Exploración (mundo abierto) | Mundo abierto (+ Objetos e inventario, Mecanismos) | Terreno con semilla, biomas, cuevas, día y noche, música por zona |
+| Mundo de bloques (tipo Minecraft) | Mundo de bloques | Generador de terreno, mano que rompe y pone, barra de la muñeca, recetas, día y noche |
 
 Si dudáis, **dejadlos todos**: tener módulos de más no molesta. Quitarlos solo sirve para tener el proyecto más limpio.
 

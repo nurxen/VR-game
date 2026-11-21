@@ -475,11 +475,10 @@ namespace VRKit
             e.lod = job.lod;
             e.view.Lod = job.lod;
             e.view.Info = job.info;
-            e.view.ApplyMesh(job.mesh, job.lod == 0, teleportOnTerrain);
-            e.view.ApplyWater(job.water, waterMaterial);
-
-            if (job.lod == 0) SpawnDetail(e, job);
-            else DespawnDetail(e);
+            // Cada parte por separado: si una falla, el resto del chunk se coloca igual
+            try { e.view.ApplyMesh(job.mesh, job.lod == 0, teleportOnTerrain); } catch (Exception ex) { Debug.LogException(ex); }
+            try { e.view.ApplyWater(job.water, waterMaterial); } catch (Exception ex) { Debug.LogException(ex); }
+            try { if (job.lod == 0) SpawnDetail(e, job); else DespawnDetail(e); } catch (Exception ex) { Debug.LogException(ex); }
 
             if (created && ChunkLoaded != null) ChunkLoaded(e.view);
         }

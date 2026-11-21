@@ -473,8 +473,8 @@ MonoBehaviour:
   warningColor: {r: 1, g: 0.2, b: 0.1, a: 1}
   scoreOnDeath: 15
   objectiveId: 
-  fireSound: {fileID: 0}
-  deathSound: {fileID: 0}
+  fireSound: {fileID: 8300000, guid: bcdee960a72f82a499eece6b6f66515c, type: 3}
+  deathSound: {fileID: 8300000, guid: c91b02c511890984091f02bbd4159907, type: 3}
   onFired:
     m_PersistentCalls:
       m_Calls: []

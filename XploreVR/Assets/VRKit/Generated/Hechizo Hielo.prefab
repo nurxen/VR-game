@@ -238,7 +238,7 @@ MonoBehaviour:
   explosionRadius: 0
   impactForce: 2
   impactEffectPrefab: {fileID: 0}
-  impactSound: {fileID: 0}
+  impactSound: {fileID: 8300000, guid: 104b87982d74f014facf6c551ca81f31, type: 3}
   headHitRadius: 0.25
   onHit:
     m_PersistentCalls:

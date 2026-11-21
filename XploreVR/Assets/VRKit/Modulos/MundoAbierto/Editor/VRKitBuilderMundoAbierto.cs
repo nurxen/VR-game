@@ -328,10 +328,16 @@ namespace VRKit.EditorTools
         static void BuildOpenWorldScene()
         {
             var a = EnsureOpenWorldAssets();
-            EnsureXROrigin();
+            var origin = EnsureXROrigin();
             CreateGameSystems();
             if (Object.FindFirstObjectByType<VRMenuManager>() == null) BuildMenu(false);
             EnsureSubtitles();
+            if (origin != null)
+            {
+                // Modo desarrollador (los dos joysticks hundidos 1 s, o F1) y andar/girar con los gatillos
+                if (origin.GetComponent<VRDevMode>() == null) Undo.AddComponent<VRDevMode>(origin.gameObject);
+                if (origin.GetComponent<TriggerLocomotion>() == null) Undo.AddComponent<TriggerLocomotion>(origin.gameObject);
+            }
 
             var root = new GameObject("Mundo abierto");
             var world = root.AddComponent<OpenWorld>();

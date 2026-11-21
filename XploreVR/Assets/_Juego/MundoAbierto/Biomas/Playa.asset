@@ -34,7 +34,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  dayMusic: []
-  nightMusic: []
-  dayAmbience: {fileID: 0}
-  nightAmbience: {fileID: 0}
+  dayMusic:
+  - {fileID: 8300000, guid: 0ab0ef5939f81bf46bb6c5cfb31706d4, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 52bae13a430a39b4588c79b52399386a, type: 3}
+  dayAmbience: {fileID: 8300000, guid: b6bf4144851b1414d8c54607e3e0a5a6, type: 3}
+  nightAmbience: {fileID: 8300000, guid: b6bf4144851b1414d8c54607e3e0a5a6, type: 3}

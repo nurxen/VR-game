@@ -179,6 +179,9 @@ namespace VRKit
         /// Bloquea o libera la locomoción (andar, girar, teletransporte). Lleva la cuenta:
         /// si dos scripts la bloquean, hace falta que los dos la liberen.
         /// </summary>
+        /// <summary>False si algún script ha bloqueado la locomoción (cargando, menú abierto…).</summary>
+        public bool LocomotionEnabled { get { return m_LocomotionLocks == 0; } }
+
         public void SetLocomotionEnabled(bool enabled)
         {
             m_LocomotionLocks = Mathf.Max(0, m_LocomotionLocks + (enabled ? -1 : 1));

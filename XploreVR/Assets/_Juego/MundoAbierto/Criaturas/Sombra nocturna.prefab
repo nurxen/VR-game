@@ -218,7 +218,7 @@ MonoBehaviour:
   attackCooldown: 1.5
   vanishAtDawn: 1
   despawnDistance: 90
-  idleSound: {fileID: 0}
+  idleSound: {fileID: 8300000, guid: 09977d1f91a2e584aa817805d5eedaf2, type: 3}
 --- !u!1 &7244425480731909470
 GameObject:
   m_ObjectHideFlags: 0
