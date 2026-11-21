@@ -13,7 +13,7 @@ namespace VRKit.EditorTools
     ///  3. Deja quedarse solo con los módulos de un tipo de juego (lo demás va a la papelera, se puede recuperar).
     ///
     /// Los módulos solo dependen del Básico, nunca unos de otros, así que se pueden quitar de uno en uno.
-    /// La carpeta Ejemplos sí necesita todos: se quita sola en cuanto quitáis cualquier módulo.
+    /// La carpeta Ejemplos usa los seis primeros (no el Mundo de bloques): se quita sola si quitáis alguno de ellos.
     /// </summary>
     public class VRKitModulesWindow : EditorWindow
     {
@@ -38,6 +38,8 @@ namespace VRKit.EditorTools
             new Module("CuerpoACuerpo", "Cuerpo a cuerpo", "Espada, hacha, escudo que bloquea, granadas y bombas", "Acción, combate medieval, defensa"),
             new Module("Poderes", "Poderes", "Hechizos con la mano, telequinesis, gancho o telaraña, tiempo bala, portales", "Magia, superpoderes, dioses, sueños"),
             new Module("Enemigos", "Enemigos", "Enemigo a pie (NavMesh), dron volador, oleadas", "Cualquier juego con rivales: arenas, hordas, jefes"),
+            new Module("MundoDeBloques", "Mundo de bloques", "Mundo de cubos que se genera solo, romper y poner bloques, inventario en la muñeca, fabricar, herramientas, día y noche, criaturas, guardado. También en maqueta sobre la mesa", "Juegos tipo Minecraft, construir, sandbox, supervivencia"),
+            new Module("MundoAbierto", "Mundo abierto", "Terreno infinito con semilla, biomas (pradera, bosque, ríos, desierto, montaña, nieve), vegetación, cuevas, día y noche con estrellas, criaturas con NavMesh, música por zona, guardado por zonas", "Exploración, aventura tranquila, supervivencia, viajes"),
         };
 
         static readonly Preset[] kPresets =
@@ -48,8 +50,13 @@ namespace VRKit.EditorTools
             new Preset("Magia / aventura", "Hechizos, pociones, puzles y criaturas.", "Poderes", "ObjetosEInventario", "Mecanismos", "Enemigos"),
             new Preset("Cozy / gestión", "Recoger, cultivar, fabricar, decorar. Sin combate.", "ObjetosEInventario", "Mecanismos"),
             new Preset("Terror / exploración", "Linterna, notas, puertas y algo que te persigue.", "ObjetosEInventario", "Mecanismos", "Enemigos"),
+            new Preset("Mundo de bloques (tipo Minecraft)", "Romper, construir, fabricar y sobrevivir a la noche.", "MundoDeBloques"),
+            new Preset("Exploración (mundo abierto)", "Descubrir sitios, construir y algo de tensión de noche.", "MundoAbierto", "ObjetosEInventario", "Mecanismos"),
             new Preset("Experiencia narrativa", "Recorrer, mirar, escuchar. Solo el Básico.", new string[0]),
         };
+
+        /// <summary>Módulos que usa la carpeta Ejemplos.</summary>
+        static readonly string[] kExampleModules = { "Mecanismos", "ObjetosEInventario", "ArmasADistancia", "CuerpoACuerpo", "Poderes", "Enemigos" };
 
         Vector2 m_Scroll;
 
@@ -98,7 +105,7 @@ namespace VRKit.EditorTools
             Row("Básico", "Siempre", "Vida y daño, partida, jugador (VRPlayer), coger y lanzar, botones, menús y opciones, subtítulos, objetivos, tutorial, guardado.", "Todos los juegos", true, null);
             foreach (var m in kModules)
                 Row(m.name, Has(m.folder) ? "Instalado" : "No está", m.contents, m.useFor, Has(m.folder), Has(m.folder) ? m.folder : null);
-            Row("Ejemplos", HasExamples ? "Instalado" : "No está", "Campo de entrenamiento completo (GameObject › VRKit › Ejemplos).", "Probar todo y copiar cómo se conecta", HasExamples, HasExamples ? "@Ejemplos" : null);
+            Row("Ejemplos", HasExamples ? "Instalado" : "No está", "Campo de entrenamiento completo (GameObject › VRKit › Ejemplos). Usa los seis primeros módulos.", "Probar todo y copiar cómo se conecta", HasExamples, HasExamples ? "@Ejemplos" : null);
 
             // ---------------------------------------------------------------- 3. Tipos de juego
             GUILayout.Space(10);
@@ -161,9 +168,9 @@ namespace VRKit.EditorTools
 
         void RemoveFolders(List<string> folders)
         {
-            // Si se quita cualquier módulo, el ejemplo (que los usa todos) dejaría de compilar: se quita también
+            // Si se quita un módulo que usa el campo de entrenamiento, el ejemplo dejaría de compilar: se quita también
             bool removingModule = false;
-            foreach (var f in folders) if (f.Contains("/Modulos/")) removingModule = true;
+            foreach (var f in folders) foreach (var m in kExampleModules) if (f.EndsWith("/Modulos/" + m)) removingModule = true;
             if (removingModule && HasExamples && !folders.Contains(Root + "/Ejemplos")) folders.Add(Root + "/Ejemplos");
 
             string list = string.Join("\n", folders.ConvertAll(f => "  · " + f.Substring(Root.Length + 1)).ToArray());
