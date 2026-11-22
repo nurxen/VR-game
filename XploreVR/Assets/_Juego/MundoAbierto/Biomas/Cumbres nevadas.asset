@@ -15,8 +15,11 @@ MonoBehaviour:
   biome: 5
   displayName: Cumbres nevadas
   groundColor: {r: 0.93, g: 0.94, b: 0.97, a: 1}
+  groundTexture: 1
   props:
-  - prefab: {fileID: 8049526835098405941, guid: a9a4814862cf71f43b160150d53d9a9f, type: 3}
+  - prefab: {fileID: 7454250380340815047, guid: c5c34137dc9703c408d082c3c6d66878, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.2
     slope: {x: 0, y: 30}
     altitude: {x: 0.4, y: 500}
@@ -25,7 +28,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 1
-  - prefab: {fileID: 4841793833088057604, guid: 6c29bcaab5c3aac428a5a6ca3841ef47, type: 3}
+  - prefab: {fileID: 3629791428868206117, guid: 3e1b00f8ecf08b14eaae56974aac78c5, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.1
     slope: {x: 0, y: 60}
     altitude: {x: 0.4, y: 500}

@@ -15,8 +15,11 @@ MonoBehaviour:
   biome: 2
   displayName: "Orilla del r\xEDo"
   groundColor: {r: 0.34, g: 0.59, b: 0.29, a: 1}
+  groundTexture: 1
   props:
-  - prefab: {fileID: 4071098684228469918, guid: ef8cac7b863171042814e9c227718925, type: 3}
+  - prefab: {fileID: 2207901789361127750, guid: a81f6eb2de2f8943c4936fd4f6bcb877, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 1.1
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}
@@ -25,7 +28,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 1
-  - prefab: {fileID: 7544102167051844651, guid: fdcb87e9a00387d4197a10ff42394bbe, type: 3}
+  - prefab: {fileID: 8558153332396924123, guid: 07fcfb7f44ad57c29aae4a1c8acb7e3a, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.5
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}
@@ -34,7 +39,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 1
-  - prefab: {fileID: 3615514199044503190, guid: f40185f07cefa7a4d8555f87a647a44f, type: 3}
+  - prefab: {fileID: 2120857162511519705, guid: 117aab2c408a9e21f3a98606559d964c, type: 3}
+    lod: -1
+    originalMaterial: 0
     density: 5
     slope: {x: 0, y: 35}
     altitude: {x: 0.4, y: 500}
@@ -43,7 +50,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 1323060496235911485, guid: 2cdea534ce3c08a4cb195529e7e7d904, type: 3}
+  - prefab: {fileID: 7548799301643707227, guid: cccb259904e1ce49d484bae4de12467c, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 1
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}
@@ -52,7 +61,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 1496366795151449528, guid: 1ee104419cf186c4784dae1152a98cbd, type: 3}
+  - prefab: {fileID: 6626055388318361726, guid: c4eff7b6c07637a87bc69467f1a7a66b, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.5
     slope: {x: 0, y: 30}
     altitude: {x: 0.4, y: 500}

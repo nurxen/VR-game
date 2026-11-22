@@ -15,8 +15,11 @@ MonoBehaviour:
   biome: 3
   displayName: Desierto
   groundColor: {r: 0.87, g: 0.75, b: 0.49, a: 1}
+  groundTexture: 1
   props:
   - prefab: {fileID: 6252214140560115153, guid: 8be0c8ab978538b4fa95ca12fce77c50, type: 3}
+    lod: -1
+    originalMaterial: 0
     density: 0.12
     slope: {x: 0, y: 20}
     altitude: {x: 0.4, y: 500}
@@ -26,6 +29,8 @@ MonoBehaviour:
     sink: 0.1
     collide: 1
   - prefab: {fileID: 5601871467796195604, guid: 97760f532efcd3348bd8608f6d7d6b14, type: 3}
+    lod: -1
+    originalMaterial: 0
     density: 0.35
     slope: {x: 0, y: 30}
     altitude: {x: 0.4, y: 500}
@@ -34,7 +39,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 4841793833088057604, guid: 6c29bcaab5c3aac428a5a6ca3841ef47, type: 3}
+  - prefab: {fileID: 3629791428868206117, guid: 7e0db0e4f782a3f09701a1ee49a9d466, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.05
     slope: {x: 0, y: 40}
     altitude: {x: 0.4, y: 500}
@@ -43,7 +50,9 @@ MonoBehaviour:
     alignToSlope: 1
     sink: 0.2
     collide: 1
-  - prefab: {fileID: 6604866116729197826, guid: 22bf093d7a6516445bbf41bf50b0b5fe, type: 3}
+  - prefab: {fileID: 5663037657465106028, guid: 99f88ff3b74ee0c63ceb004a98d63bfb, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.3
     slope: {x: 0, y: 45}
     altitude: {x: 0.4, y: 500}
