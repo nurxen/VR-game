@@ -44,6 +44,115 @@ namespace VRKit.EditorTools
             var map = Object.FindFirstObjectByType<WorldMap>();
             if (map == null) map = Undo.AddComponent<WorldMap>(root);
             SetRef(map, "mapMaterial", a.map);
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            if (world != null) SetRef(world, "texturedPropMaterial", a.propTextured);
+        }
+
+        /// <summary>
+        /// Marca Read/Write en los modelos seleccionados (o en todos los de las carpetas seleccionadas): el OpenWorld
+        /// necesita leer sus mallas para juntarlas en la vegetación combinada.
+        /// </summary>
+        [MenuItem("Tools/VRKit/Mundo abierto/Preparar modelos seleccionados (Read\u2215Write)", false, 40)]
+        static void MenuMakeReadable()
+        {
+            var paths = new List<string>();
+            foreach (var o in Selection.objects)
+            {
+                var p = AssetDatabase.GetAssetPath(o);
+                if (string.IsNullOrEmpty(p)) continue;
+                if (AssetDatabase.IsValidFolder(p))
+                    foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { p })) paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+                else if (o is GameObject)
+                {
+                    // Un prefab: sus modelos
+                    foreach (var dep in AssetDatabase.GetDependencies(p, true))
+                        if (AssetImporter.GetAtPath(dep) is ModelImporter) paths.Add(dep);
+                }
+            }
+            int changed = 0;
+            foreach (var p in new HashSet<string>(paths))
+            {
+                var mi = AssetImporter.GetAtPath(p) as ModelImporter;
+                if (mi == null || mi.isReadable) continue;
+                mi.isReadable = true;
+                mi.SaveAndReimport();
+                changed++;
+            }
+            EditorUtility.DisplayDialog("Preparar modelos",
+                paths.Count == 0 ? "Seleccionad en Project una carpeta de modelos o unos prefabs y volved a usar el menú."
+                                 : changed + " modelos marcados como Read/Write (" + (paths.Count - changed) + " ya lo estaban).", "Vale");
+        }
+
+        /// <summary>
+        /// Para materiales de otros paquetes que en la vegetación salen con el color cambiado: hace una copia con el shader
+        /// VRKit/PropTextura (con lo que se ha podido leer) en _Juego/MundoAbierto/MaterialesVegetacion y la apunta en
+        /// Material Overrides del OpenWorld. Luego se corrige a mano el Color o la Textura de la copia.
+        /// </summary>
+        [MenuItem("Tools/VRKit/Mundo abierto/Copia editable de materiales (prefabs o materiales seleccionados)", false, 41)]
+        static void MenuEditableMaterials()
+        {
+            var sources = new List<Material>();
+            foreach (var o in Selection.objects)
+            {
+                var m = o as Material;
+                if (m != null) { if (!sources.Contains(m)) sources.Add(m); continue; }
+                var go = o as GameObject;
+                if (go == null) continue;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    foreach (var sm in r.sharedMaterials)
+                        if (sm != null && !sources.Contains(sm)) sources.Add(sm);
+            }
+            sources.RemoveAll(PropMaterialReader.IsReady);
+            if (sources.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Copia editable de materiales", "Seleccionad en Project los prefabs (o los materiales) que salen con el color mal y volved a usar el menú.", "Vale");
+                return;
+            }
+            var shader = Shader.Find(PropMaterialReader.ShaderName);
+            if (shader == null) { EditorUtility.DisplayDialog("Copia editable de materiales", "No se encuentra el shader " + PropMaterialReader.ShaderName + ". ¿Está el módulo Mundo abierto actualizado?", "Vale"); return; }
+            string folder = kOWAssets + "/MaterialesVegetacion";
+            OWFolder(folder);
+
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            SerializedObject so = world != null ? new SerializedObject(world) : null;
+            var list = so != null ? so.FindProperty("materialOverrides") : null;
+            var made = new List<Object>();
+            var report = new System.Text.StringBuilder();
+            foreach (var src in sources)
+            {
+                string path = folder + "/" + src.name + ".mat";
+                var copy = AssetDatabase.LoadAssetAtPath<Material>(path);
+                var look = PropMaterialReader.Read(src);
+                if (copy == null)
+                {
+                    copy = new Material(shader) { name = src.name };
+                    PropMaterialReader.Apply(copy, look);
+                    AssetDatabase.CreateAsset(copy, path);
+                }
+                made.Add(copy);
+                report.AppendLine("· " + src.name + ": " + look);
+                if (list == null) continue;
+                bool found = false;
+                for (int i = 0; i < list.arraySize; i++)
+                {
+                    var e = list.GetArrayElementAtIndex(i);
+                    if (e.FindPropertyRelative("original").objectReferenceValue == src) { e.FindPropertyRelative("replacement").objectReferenceValue = copy; found = true; break; }
+                }
+                if (!found)
+                {
+                    list.InsertArrayElementAtIndex(list.arraySize);
+                    var e = list.GetArrayElementAtIndex(list.arraySize - 1);
+                    e.FindPropertyRelative("original").objectReferenceValue = src;
+                    e.FindPropertyRelative("replacement").objectReferenceValue = copy;
+                }
+            }
+            if (so != null) { so.ApplyModifiedProperties(); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(world.gameObject.scene); }
+            AssetDatabase.SaveAssets();
+            Selection.objects = made.ToArray();
+            EditorUtility.DisplayDialog("Copia editable de materiales",
+                made.Count + " copias en " + folder + " (ya seleccionadas).\n\n" + report +
+                "\nAbrid cada una y corregid Color (o arrastrad la textura buena a Textura). Se aplica al darle a Play." +
+                (world == null ? "\n\nOJO: no hay OpenWorld en la escena abierta; abrid la escena del mundo y repetid el menú para apuntarlas." : "\n\nGuardad la escena (Ctrl+S)."), "Vale");
         }
 
         [MenuItem(kOW + "Crear o completar biomas, vegetación y materiales", false, 220)]
@@ -55,7 +164,7 @@ namespace VRKit.EditorTools
 
         class OWAssets
         {
-            public Material terrain, props, water, stars, crystal, skybox, map;
+            public Material terrain, props, water, stars, crystal, skybox, map, propTextured;
             public readonly List<BiomeProfile> biomes = new List<BiomeProfile>();
             public GameObject cave, deer, shadow;
         }
@@ -139,6 +248,7 @@ namespace VRKit.EditorTools
             a.stars = OWMaterial("Estrellas", "VRKit/Estrellas", "Sprites/Default");
             a.crystal = OWMaterial("Cristal", "VRKit/Cristal", "Universal Render Pipeline/Unlit");
             a.map = OWMaterial("Mapa", "VRKit/Mapa", "Universal Render Pipeline/Unlit");
+            a.propTextured = OWMaterial("VegetacionConTextura", "VRKit/PropTextura", "Universal Render Pipeline/Simple Lit");
             a.skybox = OWMaterial("Cielo", "Skybox/Procedural", "Skybox/Procedural");
             if (a.skybox.HasProperty("_SunSize")) a.skybox.SetFloat("_SunSize", 0.035f);
             if (a.skybox.HasProperty("_AtmosphereThickness")) a.skybox.SetFloat("_AtmosphereThickness", 0.85f);
@@ -373,6 +483,7 @@ namespace VRKit.EditorTools
             SetRef(world, "terrainMaterial", a.terrain);
             SetRef(world, "waterMaterial", a.water);
             SetRef(world, "propMaterial", a.props);
+            SetRef(world, "texturedPropMaterial", a.propTextured);
             SetObjArray(world, "biomes", a.biomes.ConvertAll(b => (Object)b).ToArray());
             SetRef(world, "caveEntrancePrefab", a.cave);
 

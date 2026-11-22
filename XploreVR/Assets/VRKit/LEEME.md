@@ -4,7 +4,7 @@ Piezas listas para usar, sea cual sea vuestro juego: **un núcleo básico** que 
 
 > Escrito para **Unity 6 (6000.0.66f2 o superior) + XR Interaction Toolkit 3.x + OpenXR (Meta Quest)**. Se ha comprobado con un compilador, combinando el núcleo con cada módulo, pero **todavía no se ha probado dentro de Unity ni en las gafas**. Si al importarlo sale un error, copiad el mensaje de la consola y se corrige.
 
-**¿Aún no tenéis proyecto?** Empezad por `Docs/Guia-Empezar-el-proyecto.pdf` (o `EMPIEZA_AQUI.md` en la raíz del repositorio). Explica Unity, GitHub y Blender paso a paso.
+**¿Aún no tenéis proyecto?** Empezad por `Docs/1-Empezar/Guia-Empezar-el-proyecto.pdf` (o `EMPIEZA_AQUI.md` en la raíz del repositorio). Explica Unity, GitHub y Blender paso a paso.
 
 ---
 

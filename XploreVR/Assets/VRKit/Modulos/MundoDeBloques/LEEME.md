@@ -6,7 +6,7 @@ Un juego tipo Minecraft en VR: un mundo de cubos que se genera solo, romper y po
 **Necesita:** URP (por el shader `VRKit/Voxel`). **No** necesita AI Navigation: las criaturas andan por los bloques sin NavMesh.
 **Para:** juegos de construir, sandbox, supervivencia, creativo, dioramas.
 
-> Guía completa con dibujos: `Docs/Guia-Mundo-de-bloques.pdf`.
+> Guía completa con dibujos: `Docs/2-Como-funciona/Guia-Mundo-de-bloques.pdf`.
 
 ## Montarlo en 1 minuto
 1. Escena nueva vacía.

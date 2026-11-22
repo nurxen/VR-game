@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 358e20b3e653856ed5f51df69fa98239
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 424090
+  packageName: Stylized Worlds Free Sampler - Meadow Village
+  packageVersion: 1.0
+  assetPath: Assets/StylizedWorldsSampler/Nature/Shaders/Foliage.shader
+  uploadId: 1053204

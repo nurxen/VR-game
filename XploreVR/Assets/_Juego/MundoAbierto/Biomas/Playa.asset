@@ -15,8 +15,11 @@ MonoBehaviour:
   biome: 6
   displayName: Playa
   groundColor: {r: 0.89, g: 0.82, b: 0.6, a: 1}
+  groundTexture: 1
   props:
-  - prefab: {fileID: 6604866116729197826, guid: 22bf093d7a6516445bbf41bf50b0b5fe, type: 3}
+  - prefab: {fileID: 2356458884278490569, guid: 5c5bc80c5235d389f1c5676b7d928b10, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.1
     slope: {x: 0, y: 30}
     altitude: {x: 0.4, y: 500}
@@ -25,7 +28,9 @@ MonoBehaviour:
     alignToSlope: 1
     sink: 0.2
     collide: 0
-  - prefab: {fileID: 3615514199044503190, guid: f40185f07cefa7a4d8555f87a647a44f, type: 3}
+  - prefab: {fileID: 2120857162511519705, guid: 117aab2c408a9e21f3a98606559d964c, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.4
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}

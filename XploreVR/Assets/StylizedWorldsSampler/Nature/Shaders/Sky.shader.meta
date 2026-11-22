@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 3641fe09724ec5883896bdaeb6ec220a
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 424090
+  packageName: Stylized Worlds Free Sampler - Meadow Village
+  packageVersion: 1.0
+  assetPath: Assets/StylizedWorldsSampler/Nature/Shaders/Sky.shader
+  uploadId: 1053204

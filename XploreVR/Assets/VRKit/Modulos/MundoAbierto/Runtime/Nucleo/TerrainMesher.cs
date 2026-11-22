@@ -13,8 +13,10 @@ namespace VRKit
         public readonly List<int> triangles = new List<int>(6144);
         /// <summary>Solo lo que choca (sin los faldones de los bordes).</summary>
         public readonly List<int> colliderTriangles = new List<int>(6144);
+        /// <summary>Solo la vegetación con textura (el terreno no lleva UV).</summary>
+        public readonly List<Vector2> uvs = new List<Vector2>();
 
-        public void Clear() { vertices.Clear(); normals.Clear(); colors.Clear(); triangles.Clear(); colliderTriangles.Clear(); }
+        public void Clear() { vertices.Clear(); normals.Clear(); colors.Clear(); triangles.Clear(); colliderTriangles.Clear(); uvs.Clear(); }
 
         /// <summary>Añade un triángulo con su propia normal y color (aspecto low poly de caras planas).</summary>
         public void FlatTriangle(Vector3 a, Vector3 b, Vector3 c, Color32 col, bool collide = true)
@@ -191,7 +193,7 @@ namespace VRKit
         static Color32 Edge(OpenTerrainGenerator gen, TerrainPalette pal, TerrainSample t)
         {
             var c = pal.ground[(int)gen.BiomeOf(t, 0f)];
-            return new Color32((byte)(c.r * 0.85f), (byte)(c.g * 0.85f), (byte)(c.b * 0.85f), 255);
+            return new Color32((byte)(c.r * 0.85f), (byte)(c.g * 0.85f), (byte)(c.b * 0.85f), c.a);
         }
 
         static void Skirt(LowPolyMeshData m, Vector3 a, Vector3 b, float depth, Color32 col, bool flip)
@@ -205,7 +207,7 @@ namespace VRKit
         static Color32 Vary(Color32 c, float amount, int x, int y, int k)
         {
             float f = 1f + (WorldNoise.Hash01(x, y, k, 99) - 0.5f) * 2f * amount;
-            return new Color32(Clamp(c.r * f), Clamp(c.g * f), Clamp(c.b * f), 255);
+            return new Color32(Clamp(c.r * f), Clamp(c.g * f), Clamp(c.b * f), c.a);   // alfa = cuánta textura de suelo
         }
 
         static byte Clamp(float v) { return (byte)(v < 0f ? 0 : v > 255f ? 255 : v); }

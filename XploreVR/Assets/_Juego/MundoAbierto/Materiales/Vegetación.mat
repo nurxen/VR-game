@@ -22,12 +22,145 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Control:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Normal3:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RockNormal:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RockTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Splat3:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TerrainHolesTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _Ambient: 1
+    - _AntiTile: 0.65
+    - _BumpScale: 1
+    - _CoverAmount: 0
+    - _CoverSharpness: 5
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _DetailColor: 0
+    - _DetailSize: 4
+    - _DetailStrength: 1
+    - _EdgeFade: 0.3
+    - _FixedSeason: 0
+    - _GlowStrength: 3
+    - _GrassMode: 0
+    - _HeightBlend: 0.12
+    - _IceGlow: 0
+    - _MacroScale: 45
+    - _MacroStrength: 0.6
+    - _Occlusion: 0.75
+    - _RockScale: 8
+    - _RockSlope: 0.74
+    - _SandGlitter: 1
+    - _SandRim: 0.35
+    - _SandRippleSize: 0.32
+    - _SandRipples: 0.7
+    - _SandSheen: 0.35
+    - _Sastrugi: 0.6
+    - _Season: 1
+    - _SnowCover: 0.92
+    - _SnowGlints: 1
+    - _SnowLine: 100000
+    - _SnowLineBlend: 12
+    - _SnowReach: 0.25
+    - _Translucency: 0.6
+    - _Variation: 0.5
+    - _VertexVariety: 0
+    - _WetBand: 0.6
+    - _WetDarken: 0.42
+    - _WetLevel: -1000
+    - _WindAmount: 0.6
     - _Wrap: 0.25
     m_Colors:
+    - _AutumnAlt: {r: 0.8, g: 0.23999995, b: 0.059999965, a: 1}
+    - _AutumnDark: {r: 0.41999996, g: 0.09999997, b: 0.03, a: 1}
+    - _AutumnLight: {r: 1, g: 0.7, b: 0.21999997, a: 1}
+    - _AutumnTint: {r: 1.14, g: 0.96, b: 0.58, a: 1}
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _CenterColor: {r: 0.95, g: 0.75, b: 0.14999998, a: 1}
+    - _CoverColor: {r: 0.23999995, g: 0.39999998, b: 0.11999995, a: 1}
+    - _Fallen: {r: 0, g: 0, b: 0.22, a: 1.01}
+    - _GlowColor: {r: 1, g: 0.32, b: 0.04, a: 1}
+    - _GlowLayers: {r: 0, g: 0, b: 0, a: 0}
+    - _IceColor: {r: 0.45, g: 0.8, b: 1, a: 1}
+    - _PetalColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RockTint: {r: 1, g: 1, b: 1, a: 1}
+    - _SandLayers: {r: 0, g: 0, b: 0, a: 0}
+    - _SeasonLayers: {r: 1, g: 0, b: 0.4, a: 0}
+    - _SnowColor: {r: 0.9, g: 0.93, b: 0.97999996, a: 1}
+    - _SnowLayers: {r: 0, g: 0, b: 0, a: 0}
+    - _SpringAlt: {r: 0.95, g: 0.78, b: 0.8399999, a: 1}
+    - _SpringDark: {r: 0.15999997, g: 0.37999994, b: 0.09999997, a: 1}
+    - _SpringLight: {r: 0.65999997, g: 0.88, b: 0.31999996, a: 1}
+    - _SpringTint: {r: 1.06, g: 1.1, b: 0.9, a: 1}
+    - _SummerAlt: {r: 0.29999998, g: 0.52, b: 0.11999995, a: 1}
+    - _SummerDark: {r: 0.12999997, g: 0.32999998, b: 0.09999997, a: 1}
+    - _SummerLight: {r: 0.62, g: 0.82, b: 0.29999998, a: 1}
+    - _SummerTint: {r: 1, g: 1, b: 1, a: 1}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _VarietyShare: {r: 0.14, g: 0.3, b: 0.4, a: 0.3}
+    - _WinterAlt: {r: 0.39999998, g: 0.29999998, b: 0.17999998, a: 1}
+    - _WinterDark: {r: 0.29999998, g: 0.21999997, b: 0.11999995, a: 1}
+    - _WinterLight: {r: 0.62, g: 0.47999996, b: 0.29999998, a: 1}
+    - _WinterTint: {r: 0.95, g: 0.88, b: 0.7, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

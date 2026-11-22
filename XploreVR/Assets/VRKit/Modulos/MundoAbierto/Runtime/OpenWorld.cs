@@ -56,6 +56,23 @@ namespace VRKit
         [SerializeField] Material waterMaterial;
         [Tooltip("Material de la vegetación combinada (colores por vértice). Vacío = el del terreno.")]
         [SerializeField] Material propMaterial;
+        [Tooltip("Plantilla para la vegetación CON TEXTURA (shader VRKit/PropTextura). Por cada material de los prefabs se hace " +
+                 "una copia con su textura y su color: no se usan los shaders del paquete original.")]
+        [SerializeField] Material texturedPropMaterial;
+        [Tooltip("Triángulos máximos del LOD automático de cada prop combinado.")]
+        [SerializeField] int autoLodTriangles = 1500;
+        [Tooltip("Para materiales de otros paquetes que salen con el color cambiado: original → copia corregida (shader VRKit/PropTextura). " +
+                 "Lo rellena Tools › VRKit › Mundo abierto › Copia editable de materiales.")]
+        [SerializeField] List<MaterialOverride> materialOverrides = new List<MaterialOverride>();
+        [Tooltip("Escribir en la consola qué textura y color se ha leído de cada material de vegetación.")]
+        [SerializeField] bool logMaterials = true;
+
+        [Serializable]
+        public class MaterialOverride
+        {
+            public Material original;
+            public Material replacement;
+        }
         [SerializeField] BiomeProfile[] biomes = new BiomeProfile[0];
         [SerializeField, Range(0f, 0.2f)] float colorVariation = 0.06f;
 
@@ -125,7 +142,8 @@ namespace VRKit
         {
             public long key; public int cx, cz, lod;
             public int[] removed;
-            public LowPolyMeshData mesh, water, decor;
+            public LowPolyMeshData mesh, water;
+            public LowPolyMeshData[] decor;     // una malla por material
             public TerrainChunkInfo info;
             public List<PropPlacement> props;
             public List<CaveSite> caves;
@@ -162,6 +180,13 @@ namespace VRKit
         PropRuleData[] m_RuleData;
         BiomePropRule[] m_Rules;
         PropGeometry[] m_RuleGeometry;
+        // Materiales de la vegetación combinada: 0 = color por vértice; 1… = uno por material con textura de los prefabs
+        readonly List<Material> m_PropMaterials = new List<Material>();
+        readonly Dictionary<Material, int> m_PropMaterialIndex = new Dictionary<Material, int>();
+        readonly Dictionary<string, int> m_PropLookIndex = new Dictionary<string, int>();
+        readonly List<Material> m_CreatedPropMaterials = new List<Material>();
+        // Materiales originales de prefabs (regla con «Original Material»): índice en m_PropMaterials. No se destruyen.
+        readonly Dictionary<Material, int> m_OriginalIndex = new Dictionary<Material, int>();
         LowPolyMeshData m_WaterTemplate;
         Transform m_PoolRoot;
         Meta m_Meta;
@@ -218,6 +243,7 @@ namespace VRKit
         {
             if (Instance == this) Instance = null;
             if (m_WaterPlaneMesh != null) Destroy(m_WaterPlaneMesh);
+            foreach (var m in m_CreatedPropMaterials) if (m != null) Destroy(m);
         }
 
         void Start()
@@ -244,7 +270,12 @@ namespace VRKit
 
             m_Palette = new TerrainPalette { variation = colorVariation };
             foreach (var b in biomes)
-                if (b != null) m_Palette.ground[(int)b.biome] = b.groundColor;
+                if (b != null)
+                {
+                    Color32 c = b.groundColor;
+                    c.a = (byte)Mathf.RoundToInt(Mathf.Clamp01(b.groundTexture) * 255f);   // el shader lo usa como «cuánta textura»
+                    m_Palette.ground[(int)b.biome] = c;
+                }
 
             BuildRules();
             m_Placeable.Clear();
@@ -326,7 +357,11 @@ namespace VRKit
             var data = new List<PropRuleData>();
             var rules = new List<BiomePropRule>();
             var geo = new List<PropGeometry>();
-            var cache = new Dictionary<GameObject, PropGeometry>();
+            var cache = new Dictionary<string, PropGeometry>();
+            foreach (var m in m_CreatedPropMaterials) if (m != null) Destroy(m);
+            m_CreatedPropMaterials.Clear();
+            m_PropMaterials.Clear(); m_PropMaterialIndex.Clear(); m_PropLookIndex.Clear(); m_OriginalIndex.Clear();
+            m_PropMaterials.Add(propMaterial != null ? propMaterial : terrainMaterial);
             foreach (var b in biomes)
             {
                 if (b == null) continue;
@@ -334,7 +369,8 @@ namespace VRKit
                 {
                     if (r == null || r.prefab == null || r.density <= 0f) continue;
                     PropGeometry g;
-                    if (!cache.TryGetValue(r.prefab, out g)) { g = ReadGeometry(r.prefab); cache[r.prefab] = g; }
+                    string ck = r.prefab.GetInstanceID() + ":" + r.lod + ":" + r.originalMaterial;
+                    if (!cache.TryGetValue(ck, out g)) { g = ReadGeometry(r.prefab, r.lod, r.originalMaterial); cache[ck] = g; }
                     data.Add(new PropRuleData
                     {
                         biomeMask = 1 << (int)b.biome, density = r.density,
@@ -350,31 +386,165 @@ namespace VRKit
             m_RuleGeometry = geo.ToArray();
         }
 
-        /// <summary>Junta las mallas de un prefab (relativas a su raíz). La malla tiene que ser legible (Read/Write).</summary>
-        static PropGeometry ReadGeometry(GameObject prefab)
+        /// <summary>
+        /// Lee la geometría de un prefab (relativa a su raíz) para combinarla. Si tiene LOD Group, solo la del LOD elegido
+        /// (-1 = automático: el primero con autoLodTriangles o menos). Las mallas tienen que ser legibles (Read/Write).
+        /// Cada material con textura se convierte en un material propio (shader VRKit/PropTextura) con su textura y color;
+        /// los que no tienen textura pasan su color a los vértices y van todos juntos con el material de vegetación.
+        /// </summary>
+        PropGeometry ReadGeometry(GameObject prefab, int lod, bool original)
         {
-            var v = new List<Vector3>(); var n = new List<Vector3>(); var c = new List<Color32>(); var t = new List<int>();
+            var renderers = PickRenderers(prefab, lod);
+            var parts = new List<PropPart>();
             var root = prefab.transform.worldToLocalMatrix;
-            foreach (var mf in prefab.GetComponentsInChildren<MeshFilter>(true))
+            foreach (var mr in renderers)
             {
-                var mesh = mf.sharedMesh;
+                var mf = mr != null ? mr.GetComponent<MeshFilter>() : null;
+                var mesh = mf != null ? mf.sharedMesh : null;
                 if (mesh == null) continue;
-                if (!mesh.isReadable) { Debug.LogWarning("[VRKit] La malla de «" + prefab.name + "» no es legible: en su FBX marcad Read/Write. Se dibuja como objeto suelto."); return null; }
-                var m = root * mf.transform.localToWorldMatrix;
-                int start = v.Count;
-                var mv = mesh.vertices; var mn = mesh.normals; var mc = mesh.colors32;
-                var tint = mf.GetComponent<MeshRenderer>() != null && mf.GetComponent<MeshRenderer>().sharedMaterial != null && mf.GetComponent<MeshRenderer>().sharedMaterial.HasProperty("_BaseColor")
-                    ? (Color32)mf.GetComponent<MeshRenderer>().sharedMaterial.GetColor("_BaseColor") : new Color32(255, 255, 255, 255);
-                for (int i = 0; i < mv.Length; i++)
+                if (!mesh.isReadable)
                 {
-                    v.Add(m.MultiplyPoint3x4(mv[i]));
-                    n.Add(mn != null && i < mn.Length ? m.MultiplyVector(mn[i]).normalized : Vector3.up);
-                    c.Add(mc != null && i < mc.Length ? mc[i] : tint);
+                    Debug.LogWarning("[VRKit] La malla «" + mesh.name + "» de «" + prefab.name + "» no es legible: en su FBX marcad Read/Write " +
+                                     "(o usad Tools › VRKit › Mundo abierto › Preparar modelos seleccionados). Mientras, se dibuja como objeto suelto.");
+                    return null;
                 }
-                foreach (int idx in mesh.triangles) t.Add(start + idx);
+                var m = root * mf.transform.localToWorldMatrix;
+                var mv = mesh.vertices; var mn = mesh.normals; var mc = mesh.colors32;
+                var muv = mesh.uv;
+                var mats = mr.sharedMaterials;
+                for (int sub = 0; sub < mesh.subMeshCount; sub++)
+                {
+                    var src = Resolve(mats != null && mats.Length > 0 ? mats[Mathf.Min(sub, mats.Length - 1)] : null);
+                    bool hasUv = muv != null && muv.Length == mv.Length;
+                    // «Original Material»: su propio material y shader, sin traducir (para texturas que son máscaras, estaciones…)
+                    bool keep = original && src != null && !PropMaterialReader.IsReady(src);
+                    bool textured = keep ? hasUv : hasUv && src != null && (PropMaterialReader.IsReady(src) || (texturedPropMaterial != null && PropMaterialReader.Read(src).texture != null));
+                    Color color = keep || textured ? Color.white : PropMaterialReader.Read(src).color;
+                    int matIndex = keep ? OriginalMaterialFor(src) : textured ? PropMaterialFor(src) : 0;
+
+                    // Solo los vértices que usa este submesh, renumerados
+                    var tris = mesh.GetTriangles(sub);
+                    var remap = new Dictionary<int, int>();
+                    var pv = new List<Vector3>(); var pn = new List<Vector3>(); var pc = new List<Color32>(); var pu = new List<Vector2>();
+                    var pt = new int[tris.Length];
+                    for (int k = 0; k < tris.Length; k++)
+                    {
+                        int i = tris[k], j;
+                        if (!remap.TryGetValue(i, out j))
+                        {
+                            j = pv.Count; remap[i] = j;
+                            pv.Add(m.MultiplyPoint3x4(mv[i]));
+                            pn.Add(mn != null && i < mn.Length ? m.MultiplyVector(mn[i]).normalized : Vector3.up);
+                            // Con textura: el color va en el material (los colores de vértice de otros paquetes suelen ser datos de viento)
+                            // Con su material original, sus colores de vértice tal cual: su shader los usa (viento, sombreado…)
+                            pc.Add(keep ? (mc != null && i < mc.Length ? mc[i] : new Color32(255, 255, 255, 255))
+                                 : textured ? new Color32(255, 255, 255, 255) : (mc != null && i < mc.Length ? mc[i] : (Color32)color));
+                            if (textured) pu.Add(muv[i]);
+                        }
+                        pt[k] = j;
+                    }
+                    if (pv.Count == 0) continue;
+                    parts.Add(new PropPart { material = matIndex, vertices = pv.ToArray(), normals = pn.ToArray(), colors = pc.ToArray(), uvs = textured ? pu.ToArray() : null, triangles = pt });
+                }
             }
-            if (v.Count == 0) return null;
-            return new PropGeometry { vertices = v.ToArray(), normals = n.ToArray(), colors = c.ToArray(), triangles = t.ToArray() };
+            if (parts.Count == 0) return null;
+            var g = new PropGeometry { parts = parts.ToArray() };
+            if (g.TriangleCount > 6000)
+                Debug.LogWarning("[VRKit] «" + prefab.name + "» tiene " + g.TriangleCount + " triángulos en el LOD usado: en la vegetación es mucho para Quest. Probad un LOD más bajo en su regla del bioma.");
+            return g;
+        }
+
+        /// <summary>Los renderers del LOD elegido, o todos los del prefab (sin los nombrados _LOD1, _LOD2…) si no tiene LOD Group.</summary>
+        List<MeshRenderer> PickRenderers(GameObject prefab, int lod)
+        {
+            var list = new List<MeshRenderer>();
+            var group = prefab.GetComponentInChildren<LODGroup>(true);
+            if (group != null)
+            {
+                var lods = group.GetLODs();
+                if (lods.Length > 0)
+                {
+                    int pick = lod;
+                    if (pick < 0)
+                    {
+                        pick = lods.Length - 1;
+                        for (int i = 0; i < lods.Length; i++)
+                            if (CountTriangles(lods[i].renderers) <= autoLodTriangles) { pick = i; break; }
+                    }
+                    pick = Mathf.Clamp(pick, 0, lods.Length - 1);
+                    foreach (var r in lods[pick].renderers) { var mr = r as MeshRenderer; if (mr != null) list.Add(mr); }
+                    return list;
+                }
+            }
+            foreach (var mr in prefab.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                string n = mr.gameObject.name;
+                int at = n.LastIndexOf("_LOD", StringComparison.OrdinalIgnoreCase);
+                if (at >= 0 && at + 4 < n.Length && n[at + 4] != '0') continue;
+                list.Add(mr);
+            }
+            return list;
+        }
+
+        static int CountTriangles(Renderer[] renderers)
+        {
+            int n = 0;
+            foreach (var r in renderers)
+            {
+                var mf = r != null ? r.GetComponent<MeshFilter>() : null;
+                if (mf == null || mf.sharedMesh == null) continue;
+                for (int s = 0; s < mf.sharedMesh.subMeshCount; s++) n += (int)mf.sharedMesh.GetIndexCount(s) / 3;
+            }
+            return n;
+        }
+
+        /// <summary>El material del propio prefab, sin copiar ni cambiar de shader.</summary>
+        int OriginalMaterialFor(Material src)
+        {
+            int idx;
+            if (m_OriginalIndex.TryGetValue(src, out idx)) return idx;
+            idx = m_PropMaterials.Count;
+            m_PropMaterials.Add(src);
+            m_OriginalIndex[src] = idx;
+            if (logMaterials) Debug.Log("[VRKit] Vegetación: «" + src.name + "» con su material original (shader " + (src.shader != null ? src.shader.name : "?") + ").");
+            return idx;
+        }
+
+        /// <summary>Índice del material combinado para src (ya resuelto con Material Overrides). Crea uno si hace falta.</summary>
+        int PropMaterialFor(Material src)
+        {
+            int idx;
+            if (m_PropMaterialIndex.TryGetValue(src, out idx)) return idx;
+            if (PropMaterialReader.IsReady(src))
+            {
+                // Una copia ya corregida (shader VRKit/PropTextura): se usa tal cual
+                idx = m_PropMaterials.Count;
+                m_PropMaterials.Add(src);
+                m_PropMaterialIndex[src] = idx;
+                return idx;
+            }
+            var look = PropMaterialReader.Read(src);
+            // Materiales distintos que se ven igual comparten uno: menos llamadas de dibujo
+            string key = look.texture.GetInstanceID() + "|" + look.scaleOffset + "|" + ((Color32)look.color).ToString() + "|" + look.cutoff.ToString("0.00") + "|" + look.twoSided;
+            if (m_PropLookIndex.TryGetValue(key, out idx)) { m_PropMaterialIndex[src] = idx; return idx; }
+            var mat = new Material(texturedPropMaterial) { name = "Vegetación · " + src.name };
+            PropMaterialReader.Apply(mat, look);
+            m_CreatedPropMaterials.Add(mat);
+            if (logMaterials) Debug.Log("[VRKit] Vegetación: «" + src.name + "» (shader " + (src.shader != null ? src.shader.name : "?") + ") → " + look +
+                                        ". Si el color sale mal: Tools › VRKit › Mundo abierto › Copia editable de materiales.");
+            idx = m_PropMaterials.Count;
+            m_PropMaterials.Add(mat);
+            m_PropLookIndex[key] = idx;
+            m_PropMaterialIndex[src] = idx;
+            return idx;
+        }
+
+        /// <summary>El material que manda para src: su sustituto de Material Overrides, si lo tiene.</summary>
+        Material Resolve(Material src)
+        {
+            if (src == null || materialOverrides == null) return src;
+            foreach (var o in materialOverrides) if (o != null && o.original == src && o.replacement != null) return o.replacement;
+            return src;
         }
 
         void SetupFogAndCamera()
@@ -500,6 +670,7 @@ namespace VRKit
             int res = resolution, far = farResolution, veryFar = Mathf.Min(veryFarResolution, farResolution); bool flat = flatShading;
             var water = singleWaterPlane ? null : m_WaterTemplate;
             var ruleInfo = m_Rules;
+            int matCount = m_PropMaterials.Count;
             Task.Run(() =>
             {
                 try
@@ -517,7 +688,7 @@ namespace VRKit
                             job.props.RemoveAll(pp => removed.Contains(pp.id));
                         }
                         // Toda la vegetación que se puede combinar, en una malla
-                        job.decor = new LowPolyMeshData();
+                        job.decor = new LowPolyMeshData[matCount];
                         foreach (var pp in job.props)
                         {
                             var g = geo[pp.rule];
@@ -624,25 +795,32 @@ namespace VRKit
             view.propsSpawned = true;
             var rec = GetRecord(job.key);
 
-            // 1. Malla combinada
-            if (job.decor != null && job.decor.vertices.Count > 0)
-            {
-                var go = new GameObject("Vegetación combinada");
-                go.transform.SetParent(view.propRoot, false);
-                var mesh = new Mesh { name = "Vegetación " + job.cx + "," + job.cz };
-                mesh.indexFormat = job.decor.vertices.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
-                mesh.SetVertices(job.decor.vertices);
-                mesh.SetNormals(job.decor.normals);
-                mesh.SetColors(job.decor.colors);
-                mesh.SetTriangles(job.decor.triangles, 0);
-                mesh.RecalculateBounds();
-                go.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var r = go.AddComponent<MeshRenderer>();
-                r.sharedMaterial = propMaterial != null ? propMaterial : terrainMaterial;
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                go.AddComponent<DestroyMeshOnDestroy>();
-                view.props.Add(go);
-            }
+            // 1. Mallas combinadas: una por material (casi siempre una o pocas)
+            if (job.decor != null)
+                for (int mi = 0; mi < job.decor.Length; mi++)
+                {
+                    var d = job.decor[mi];
+                    if (d == null || d.vertices.Count == 0) continue;
+                    var go = new GameObject(mi == 0 ? "Vegetación combinada" : "Vegetación combinada · " + mi);
+                    go.transform.SetParent(view.propRoot, false);
+                    var mesh = new Mesh { name = "Vegetación " + job.cx + "," + job.cz + " · " + mi };
+                    mesh.indexFormat = d.vertices.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+                    mesh.SetVertices(d.vertices);
+                    mesh.SetNormals(d.normals);
+                    mesh.SetColors(d.colors);
+                    if (d.uvs.Count == d.vertices.Count) mesh.SetUVs(0, d.uvs);
+                    mesh.SetTriangles(d.triangles, 0);
+                    mesh.RecalculateBounds();
+                    // Material original: puede usar normal map, que necesita tangentes
+                    if (mi < m_PropMaterials.Count && m_OriginalIndex.ContainsKey(m_PropMaterials[mi]) && d.uvs.Count == d.vertices.Count) mesh.RecalculateTangents();
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var r = go.AddComponent<MeshRenderer>();
+                    r.sharedMaterial = mi < m_PropMaterials.Count ? m_PropMaterials[mi] : m_PropMaterials[0];
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    r.receiveShadows = false;
+                    go.AddComponent<DestroyMeshOnDestroy>();
+                    view.props.Add(go);
+                }
 
             // 2. Árboles y rocas con colisión (o que no se pudieron combinar): unos pocos por frame
             view.pendingProps = job.props;
@@ -695,6 +873,7 @@ namespace VRKit
                 inst.transform.localRotation = Quaternion.Euler(0f, pp.yaw, 0f);
                 inst.transform.localScale = rule.prefab.transform.localScale * pp.scale;
                 foreach (var rend in inst.GetComponentsInChildren<Renderer>(true)) rend.enabled = !combined;
+                foreach (var lg in inst.GetComponentsInChildren<LODGroup>(true)) lg.enabled = !combined;
                 var wp = inst.GetComponent<WorldProp>();
                 if (wp == null) wp = inst.AddComponent<WorldProp>();
                 wp.ChunkKey = view.Key; wp.Id = pp.id; wp.Rule = pp.rule; wp.SourcePrefab = rule.prefab;

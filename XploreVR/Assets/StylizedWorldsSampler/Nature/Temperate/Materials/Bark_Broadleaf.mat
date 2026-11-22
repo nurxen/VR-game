@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Bark_Broadleaf
+  m_Shader: {fileID: 4800000, guid: 94eedd5282bada22c2b57813ddb10f6d, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 095ee75658817cd345f80901c17903f9, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: a5901a8b71bb000a44ce0cc309762cbe, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BumpScale: 1
+    - _CoverAmount: 0.18
+    - _CoverSharpness: 5
+    - _FixedSeason: 0
+    - _GlowStrength: 0
+    - _IceGlow: 0
+    - _MacroScale: 40
+    - _MacroStrength: 0
+    - _Occlusion: 0.6
+    - _Season: 1
+    - _SnowCover: 0.55
+    - _Variation: 0.5
+    - _VertexVariety: 0
+    - _WindAmount: 0.6
+    - _Wrap: 0.35
+    m_Colors:
+    - _AutumnTint: {r: 1, g: 1, b: 1, a: 1}
+    - _CoverColor: {r: 0.23999995, g: 0.39999998, b: 0.11999995, a: 1}
+    - _GlowColor: {r: 1, g: 0.35, b: 0.05, a: 1}
+    - _IceColor: {r: 0.45, g: 0.8, b: 1, a: 1}
+    - _SnowColor: {r: 0.9, g: 0.93, b: 0.97999996, a: 1}
+    - _SpringTint: {r: 1, g: 1, b: 1, a: 1}
+    - _SummerTint: {r: 1, g: 1, b: 1, a: 1}
+    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _WinterTint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

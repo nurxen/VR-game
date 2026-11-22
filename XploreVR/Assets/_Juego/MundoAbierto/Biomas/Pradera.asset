@@ -15,8 +15,11 @@ MonoBehaviour:
   biome: 0
   displayName: Pradera
   groundColor: {r: 0.46, g: 0.67, b: 0.31, a: 1}
+  groundTexture: 1
   props:
-  - prefab: {fileID: 3615514199044503190, guid: f40185f07cefa7a4d8555f87a647a44f, type: 3}
+  - prefab: {fileID: 7956280934098957061, guid: e87ff975baf1199e2b32b1751532fd80, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 6
     slope: {x: 0, y: 35}
     altitude: {x: 0.4, y: 500}
@@ -25,7 +28,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 1323060496235911485, guid: 2cdea534ce3c08a4cb195529e7e7d904, type: 3}
+  - prefab: {fileID: 4556675222574803010, guid: 475a7fedbd7b7593cfb01155c85b7455, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 1.2
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}
@@ -34,7 +39,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 7544102167051844651, guid: fdcb87e9a00387d4197a10ff42394bbe, type: 3}
+  - prefab: {fileID: 2207901789361127750, guid: a81f6eb2de2f8943c4936fd4f6bcb877, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.12
     slope: {x: 0, y: 25}
     altitude: {x: 0.4, y: 500}
@@ -43,7 +50,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 1
-  - prefab: {fileID: 1496366795151449528, guid: 1ee104419cf186c4784dae1152a98cbd, type: 3}
+  - prefab: {fileID: 5039388461197353077, guid: d2cbccd4ce780fc1aebac3330fe08ba8, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.25
     slope: {x: 0, y: 30}
     altitude: {x: 0.4, y: 500}
@@ -52,7 +61,9 @@ MonoBehaviour:
     alignToSlope: 0
     sink: 0.1
     collide: 0
-  - prefab: {fileID: 6604866116729197826, guid: 22bf093d7a6516445bbf41bf50b0b5fe, type: 3}
+  - prefab: {fileID: 2356458884278490569, guid: 5c5bc80c5235d389f1c5676b7d928b10, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.15
     slope: {x: 0, y: 40}
     altitude: {x: 0.4, y: 500}
@@ -61,7 +72,9 @@ MonoBehaviour:
     alignToSlope: 1
     sink: 0.2
     collide: 0
-  - prefab: {fileID: 4841793833088057604, guid: 6c29bcaab5c3aac428a5a6ca3841ef47, type: 3}
+  - prefab: {fileID: 3629791428868206117, guid: 7e0db0e4f782a3f09701a1ee49a9d466, type: 3}
+    lod: -1
+    originalMaterial: 1
     density: 0.03
     slope: {x: 0, y: 40}
     altitude: {x: 0.4, y: 500}

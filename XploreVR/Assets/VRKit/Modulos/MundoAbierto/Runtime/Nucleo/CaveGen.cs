@@ -156,12 +156,12 @@ namespace VRKit
             float f = 0.85f + WorldNoise.Hash01(a + i, b + k, 92, seed) * 0.3f;
             bool floor = v.y < floorY + 0.3f;
             int r = floor ? 92 : 84, g = floor ? 84 : 80, bl = floor ? 72 : 88;
-            return new Color32((byte)Math.Min(255, r * f), (byte)Math.Min(255, g * f), (byte)Math.Min(255, bl * f), 255);
+            return new Color32((byte)Math.Min(255, r * f), (byte)Math.Min(255, g * f), (byte)Math.Min(255, bl * f), 0);   // alfa 0: sin textura de suelo
         }
 
         static void Cap(LowPolyMeshData m, Vector3[] ring, Vector3 center, bool first, int a, int b, int seed)
         {
-            var col = new Color32(70, 66, 74, 255);
+            var col = new Color32(70, 66, 74, 0);
             for (int k = 0; k < ring.Length; k++)
             {
                 int k2 = (k + 1) % ring.Length;

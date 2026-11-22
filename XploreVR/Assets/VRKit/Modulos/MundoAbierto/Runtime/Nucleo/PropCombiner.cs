@@ -3,24 +3,52 @@ using UnityEngine;
 
 namespace VRKit
 {
-    /// <summary>La geometría de un prefab de vegetación, leída una vez, para copiarla muchas veces en un chunk.</summary>
-    public sealed class PropGeometry
+    /// <summary>
+    /// Un trozo de un prefab de vegetación con un solo material. Material 0 = sin textura (color por vértice);
+    /// 1, 2… = un material con textura que crea el OpenWorld (todos los trozos con el mismo material se juntan).
+    /// </summary>
+    public sealed class PropPart
     {
+        public int material;
         public Vector3[] vertices;
         public Vector3[] normals;
         public Color32[] colors;
+        /// <summary>Solo si el material tiene textura.</summary>
+        public Vector2[] uvs;
         public int[] triangles;
-        public int VertexCount { get { return vertices != null ? vertices.Length : 0; } }
+    }
+
+    /// <summary>La geometría de un prefab de vegetación (un solo LOD), leída una vez, para copiarla muchas veces en un chunk.</summary>
+    public sealed class PropGeometry
+    {
+        public PropPart[] parts;
+        public int VertexCount { get { int n = 0; if (parts != null) foreach (var p in parts) n += p.vertices.Length; return n; } }
+        public int TriangleCount { get { int n = 0; if (parts != null) foreach (var p in parts) n += p.triangles.Length / 3; return n; } }
     }
 
     /// <summary>
-    /// Junta todos los árboles, rocas y hierba de un chunk en UNA sola malla. Así, en vez de cientos de objetos,
+    /// Junta todos los árboles, rocas y hierba de un chunk en UNA malla por material (casi siempre una o pocas). Así, en vez de cientos de objetos,
     /// la Quest dibuja uno por chunk: es lo que permite tanta vegetación a 72 FPS. Código puro (va en otro hilo).
     /// </summary>
     public static class PropCombiner
     {
-        /// <summary>Copia g en m, girada yaw grados, inclinada hacia «up», escalada y movida a pos.</summary>
-        public static void Append(LowPolyMeshData m, PropGeometry g, Vector3 pos, float yawDeg, Vector3 up, float scale)
+        /// <summary>
+        /// Copia g, girada yaw grados, inclinada hacia «up», escalada y movida a pos. Cada trozo va a la malla de su
+        /// material: byMaterial[material] (se crea si falta).
+        /// </summary>
+        public static void Append(LowPolyMeshData[] byMaterial, PropGeometry g, Vector3 pos, float yawDeg, Vector3 up, float scale)
+        {
+            if (g == null || g.parts == null) return;
+            foreach (var part in g.parts)
+            {
+                if (part.material < 0 || part.material >= byMaterial.Length) continue;
+                if (byMaterial[part.material] == null) byMaterial[part.material] = new LowPolyMeshData();
+                Append(byMaterial[part.material], part, pos, yawDeg, up, scale);
+            }
+        }
+
+        /// <summary>Copia un trozo en m.</summary>
+        public static void Append(LowPolyMeshData m, PropPart g, Vector3 pos, float yawDeg, Vector3 up, float scale)
         {
             if (g == null || g.vertices == null) return;
             // Base: «arriba» = up; «adelante» = el yaw proyectado sobre el plano perpendicular a up
@@ -32,6 +60,9 @@ namespace VRKit
             Vector3 right = Cross(u, fwd);
 
             int start = m.vertices.Count;
+            bool uv = g.uvs != null && g.uvs.Length == g.vertices.Length;
+            // Si esta malla mezcla trozos con y sin UV, rellenar para que cuadren
+            if (uv) while (m.uvs.Count < start) m.uvs.Add(new Vector2(0f, 0f));
             for (int i = 0; i < g.vertices.Length; i++)
             {
                 var v = g.vertices[i];
@@ -42,6 +73,7 @@ namespace VRKit
                 var n = g.normals != null && i < g.normals.Length ? g.normals[i] : new Vector3(0f, 1f, 0f);
                 m.normals.Add(new Vector3(right.x * n.x + u.x * n.y + fwd.x * n.z, right.y * n.x + u.y * n.y + fwd.y * n.z, right.z * n.x + u.z * n.y + fwd.z * n.z));
                 m.colors.Add(g.colors != null && i < g.colors.Length ? g.colors[i] : new Color32(255, 255, 255, 255));
+                if (uv) m.uvs.Add(g.uvs[i]);
             }
             for (int i = 0; i < g.triangles.Length; i++) m.triangles.Add(start + g.triangles[i]);
         }

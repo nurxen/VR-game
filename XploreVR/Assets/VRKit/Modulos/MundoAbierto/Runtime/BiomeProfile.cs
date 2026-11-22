@@ -9,6 +9,13 @@ namespace VRKit
     public class BiomePropRule
     {
         public GameObject prefab;
+        [Tooltip("Qué LOD del prefab se usa en la vegetación combinada (si tiene LOD Group). -1 = automático: el primero con " +
+                 "1.500 triángulos o menos. 0 = el de más detalle. Los objetos combinados solo se ven hasta 80 m.")]
+        [Range(-1, 3)] public int lod = -1;
+        [Tooltip("Dibujar la vegetación combinada con el material ORIGINAL del prefab (su shader, con viento, estaciones, colores…), " +
+                 "en vez del shader ligero del kit. Marcadlo si con el del kit salen colores raros (texturas que son máscaras). " +
+                 "Gasta más: medid los FPS.")]
+        public bool originalMaterial = false;
         [Tooltip("Cuántos por cada 100 m² (un cuadrado de 10 × 10 m). Árboles de bosque: 3–5. Rocas: 0,3.")]
         [Min(0f)] public float density = 1f;
         [Tooltip("Pendiente en grados donde puede salir.")]
@@ -37,6 +44,9 @@ namespace VRKit
         [Tooltip("Nombre que se ve al descubrirlo.")]
         public string displayName = "Pradera";
         public Color groundColor = new Color(0.46f, 0.67f, 0.31f);
+        [Tooltip("Cuánto se ve en este bioma la textura del suelo (la que pongáis en el material Terreno, hueco «Textura del suelo»). " +
+                 "0 = solo el color; 1 = toda. Por ejemplo: pradera 1, desierto 0,4, nieve 0.")]
+        [Range(0f, 1f)] public float groundTexture = 1f;
         public List<BiomePropRule> props = new List<BiomePropRule>();
 
         [Header("Sonido (opcional)")]

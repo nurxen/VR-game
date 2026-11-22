@@ -6,7 +6,7 @@ Un mundo para explorar que no se acaba. Tiene montañas, colinas, valles y **rí
 **Necesita:** URP, por sus shaders. **No necesita** el paquete AI Navigation: la NavMesh se hace por código.
 **Estilo:** low poly con colores (caras planas, sin texturas). El material va aparte para cambiarlo cuando lo decidáis.
 
-> Guía con dibujos: `Docs/Guia-Mundo-abierto.pdf`.
+> Guía con dibujos: `Docs/2-Como-funciona/Guia-Mundo-abierto.pdf`.
 
 ## Montarlo en 1 minuto
 1. Escena nueva vacía.
@@ -60,6 +60,25 @@ Un mundo para explorar que no se acaba. Tiene montañas, colinas, valles y **rí
 | Noches más cortas | `SkyCycle › Night Speed Factor`, `Day Minutes` |
 | Sin bichos de noche | `CreatureSpawner › Max Night = 0` |
 | Más o menos cuevas | `OpenWorld › Cave Spacing`, `Cave Chance` |
+
+## Usar modelos de otros paquetes (Asset Store, Blender…)
+1. Seleccionad en Project la carpeta de sus modelos (o sus prefabs) y usad **Tools › VRKit › Mundo abierto › Preparar modelos seleccionados (Read∕Write)**.
+2. Abrid un bioma (`_Juego/MundoAbierto/Biomas/…`) y en **Props** cambiad el **Prefab** de una regla por el suyo, o añadid una regla nueva.
+3. **LOD**: -1 (automático) coge el primer LOD con 1.500 triángulos o menos. Se puede fijar a mano (0, 1, 2).
+4. Su textura y su color se dibujan con el shader ligero `VRKit/PropTextura` (sin viento ni efectos del paquete). Los materiales que se ven igual se juntan en uno; por cada material distinto sale una «Vegetación combinada · N» en cada chunk (una llamada de dibujo cada una). Menos modelos distintos, o modelos que compartan textura (atlas), = menos.
+5. Si choca (árboles, rocas grandes), marcad **Collide**: se usa su collider, invisible.
+- **¿Sale con el color cambiado** (rosas moradas, hierba azul)? Su shader guarda el color de otra forma. Mirad en la Consola la línea «[VRKit] Vegetación: …» de ese material (dice qué textura y color ha leído). Para corregirlo: seleccionad el prefab en Project › **Tools › VRKit › Mundo abierto › Copia editable de materiales**. Crea una copia en `_Juego/MundoAbierto/MaterialesVegetacion` (shader `VRKit/PropTextura`), la apunta en **Material Overrides** del OpenWorld, y en esa copia se cambia el **Color** o la **Textura** a mano.
+- **¿La textura es una máscara** (colores raros que no se arreglan con un color)? En la regla del bioma, marcad **Original Material**: la vegetación combinada de esa regla usa su material y su shader originales (viento, estaciones, colores). Gasta más que el shader del kit: medid los FPS, sobre todo en la hierba.
+- No toquéis los prefabs de `_Juego/MundoAbierto/Vegetacion` si otros biomas los usan; añadid reglas nuevas.
+- Si la consola dice «no es legible», falta el paso 1. Si dice «tiene N triángulos», bajad el LOD de esa regla.
+
+## Textura en el suelo (césped, arena…)
+1. Material `_Juego/MundoAbierto/Materiales/Terreno` → hueco **Textura del suelo**: arrastrad ahí el PNG (con mipmaps, como viene por defecto).
+2. **Tamaño**: cada cuántos metros se repite (4 m va bien para hierba). **Fuerza**: cuánto se nota.
+3. Por defecto solo pone luces y sombras de la textura sobre el color del bioma (la misma hierba vale para todos). Con **Usar también sus colores** se ven sus colores tal cual.
+4. Cada bioma dice cuánta textura lleva (**Ground Texture** en su BiomeProfile): pradera 1, desierto 0,4, nieve 0, por ejemplo.
+- Cuesta una lectura de textura por píxel del suelo: medid los FPS.
+- Para que el color de fondo se parezca al de la textura, cambiad **Ground Color** del bioma (con el cuentagotas sobre la textura).
 
 ## El mapa
 - **Minimapa** en la muñeca izquierda: gira la muñeca y míralo como un reloj. Su norte apunta al norte de verdad.

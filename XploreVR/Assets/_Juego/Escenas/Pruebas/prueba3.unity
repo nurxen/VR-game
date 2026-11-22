@@ -2080,6 +2080,8 @@ MonoBehaviour:
   terrainMaterial: {fileID: 2100000, guid: 6543a75912a7d354d8895c7a2567af9c, type: 2}
   waterMaterial: {fileID: 2100000, guid: 65f02a9933fb74a44a2a76c9a409725d, type: 2}
   propMaterial: {fileID: 2100000, guid: a18f2618e2a623748a4980d8d88f6b97, type: 2}
+  texturedPropMaterial: {fileID: 2100000, guid: c827bb8cdb15df44ea6a5616aa9ff932, type: 2}
+  autoLodTriangles: 1500
   biomes:
   - {fileID: 11400000, guid: 7f96283748c439341b5b618ab0e8f756, type: 2}
   - {fileID: 11400000, guid: b3d4602f4ab34c74eb1c8ea6b42425da, type: 2}
