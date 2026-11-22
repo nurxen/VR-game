@@ -12,7 +12,7 @@ namespace VRKit
     ///   · Clic en el joystick derecho: velocidad ×1 → ×3 → ×8 → ×20.
     ///   · Clic en el joystick izquierdo: volar (sin gravedad; el joystick lleva hacia donde miras, también arriba y abajo;
     ///     grip derecho = subir, grip izquierdo = bajar).
-    ///   · Y (mano izquierda): adelantar el reloj 2 horas (si hay ciclo de día y noche).
+    ///   · X (mano izquierda): adelantar el reloj 2 horas (si hay ciclo de día y noche). (Y abre el mapa.)
     ///   · B (mano derecha): invencible sí / no.
     /// Por seguridad, solo funciona en el editor y en las Development Build (no en la versión final).
     /// </summary>
@@ -81,7 +81,7 @@ namespace VRKit
 
             if (m_RightClick.WasReleasedThisFrame()) { m_SpeedIndex = (m_SpeedIndex + 1) % speeds.Length; ApplySpeed(); Say("Velocidad ×" + speeds[m_SpeedIndex]); }
             if (m_LeftClick.WasReleasedThisFrame()) { SetFlying(!Flying); Say(Flying ? "Volando" : "Andando"); }
-            if (m_Left.Secondary.WasPressedThisFrame()) AdvanceTime(2f / 24f);
+            if (m_Left.Primary.WasPressedThisFrame() && m_Left.Trigger.ReadValue<float>() < 0.15f && (VRPlayer.Instance == null || VRPlayer.Instance.LocomotionEnabled)) AdvanceTime(2f / 24f);
             if (m_Right.Secondary.WasPressedThisFrame() && PlayerHealth.Instance != null)
             {
                 PlayerHealth.Instance.Invincible = !PlayerHealth.Instance.Invincible;
@@ -96,7 +96,7 @@ namespace VRKit
             if (!on) { m_SpeedIndex = 0; SetFlying(false); }
             else if (m_SpeedIndex == 0 && speeds.Length > 1) m_SpeedIndex = 1;
             ApplySpeed();
-            Say(on ? "Modo desarrollador: ON (clic joystick derecho = velocidad, izquierdo = volar, Y = +2 h, B = invencible)" : "Modo desarrollador: OFF");
+            Say(on ? "Modo desarrollador: ON (clic joystick derecho = velocidad, izquierdo = volar, X = +2 h, B = invencible)" : "Modo desarrollador: OFF");
         }
 
         void ApplySpeed()

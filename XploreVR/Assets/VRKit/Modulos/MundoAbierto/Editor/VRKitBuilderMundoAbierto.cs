@@ -18,6 +18,34 @@ namespace VRKit.EditorTools
         const string kOWAssets = "Assets/_Juego/MundoAbierto";
 
         [MenuItem(kOW + "Mundo abierto completo", false, 200)] static void MenuOpenWorld() { BuildOpenWorldScene(); }
+        [MenuItem(kOW + "Añadir mapa y mejoras de rendimiento (a una escena ya montada)", false, 210)]
+        static void MenuOpenWorldMap()
+        {
+            var a = EnsureOpenWorldAssets();
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            if (world == null)
+            {
+                EditorUtility.DisplayDialog("Mundo abierto", "No hay ningún OpenWorld en la escena abierta. Usad «Mundo abierto completo» o abrid vuestra escena.", "Vale");
+                return;
+            }
+            AddMapAndPerformance(a, world.gameObject);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
+            EditorUtility.DisplayDialog("Mundo abierto",
+                "Hecho:\n\n· Mapa (WorldMap) en «" + world.name + "»: botón Y o tecla M, y minimapa en la muñeca izquierda.\n" +
+                "· VRPerformance en el XR Origin (foveated rendering).\n" +
+                "· El OpenWorld ya trae las mejoras nuevas (agua única, 3 niveles de detalle, calidad automática).\n\n" +
+                "Guardad la escena (Ctrl+S). Recomendado también: Tools › VRKit › Optimizar para Quest.", "Vale");
+        }
+
+        static void AddMapAndPerformance(OWAssets a, GameObject root)
+        {
+            var player = Object.FindFirstObjectByType<VRPlayer>();
+            if (player != null && player.GetComponent<VRPerformance>() == null) Undo.AddComponent<VRPerformance>(player.gameObject);
+            var map = Object.FindFirstObjectByType<WorldMap>();
+            if (map == null) map = Undo.AddComponent<WorldMap>(root);
+            SetRef(map, "mapMaterial", a.map);
+        }
+
         [MenuItem(kOW + "Crear o completar biomas, vegetación y materiales", false, 220)]
         static void MenuOpenWorldAssets()
         {
@@ -27,7 +55,7 @@ namespace VRKit.EditorTools
 
         class OWAssets
         {
-            public Material terrain, props, water, stars, crystal, skybox;
+            public Material terrain, props, water, stars, crystal, skybox, map;
             public readonly List<BiomeProfile> biomes = new List<BiomeProfile>();
             public GameObject cave, deer, shadow;
         }
@@ -110,6 +138,7 @@ namespace VRKit.EditorTools
             a.water = OWMaterial("Agua", "VRKit/Agua", "Universal Render Pipeline/Unlit");
             a.stars = OWMaterial("Estrellas", "VRKit/Estrellas", "Sprites/Default");
             a.crystal = OWMaterial("Cristal", "VRKit/Cristal", "Universal Render Pipeline/Unlit");
+            a.map = OWMaterial("Mapa", "VRKit/Mapa", "Universal Render Pipeline/Unlit");
             a.skybox = OWMaterial("Cielo", "Skybox/Procedural", "Skybox/Procedural");
             if (a.skybox.HasProperty("_SunSize")) a.skybox.SetFloat("_SunSize", 0.035f);
             if (a.skybox.HasProperty("_AtmosphereThickness")) a.skybox.SetFloat("_AtmosphereThickness", 0.85f);
@@ -372,6 +401,7 @@ namespace VRKit.EditorTools
             SetObjArray(spawner, "nightCreatures", new Object[] { a.shadow });
             root.AddComponent<BiomeAudio>();
             root.AddComponent<WorldDiscovery>();
+            AddMapAndPerformance(a, root);
 
             Undo.RegisterCreatedObjectUndo(root, "VRKit");
             Selection.activeGameObject = root;

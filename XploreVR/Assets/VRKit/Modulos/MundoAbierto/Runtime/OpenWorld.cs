@@ -39,10 +39,14 @@ namespace VRKit
         [SerializeField, Range(4, 64)] int resolution = 16;
         [Tooltip("Cuadrados por lado en los lejanos.")]
         [SerializeField, Range(2, 32)] int farResolution = 8;
+        [Tooltip("Cuadrados por lado en los muy lejanos (más allá de Mid Distance).")]
+        [SerializeField, Range(2, 16)] int veryFarResolution = 4;
         [Tooltip("Hasta dónde se ve el terreno (metros). En Quest 2: 160–220.")]
         [SerializeField] float viewDistance = 200f;
         [Tooltip("Hasta dónde hay detalle, colisión y vegetación (metros).")]
         [SerializeField] float detailDistance = 80f;
+        [Tooltip("Más allá de esto, el terreno se hace con aún menos triángulos (metros).")]
+        [SerializeField] float midDistance = 130f;
         [SerializeField] bool flatShading = true;
         [Tooltip("Tiras bajo los bordes que tapan grietas entre chunks.")]
         [SerializeField] float skirtDepth = 4f;
@@ -83,6 +87,16 @@ namespace VRKit
         [SerializeField, Range(1, 4)] int workerThreads = 2;
         [Tooltip("Chunks que se colocan por frame.")]
         [SerializeField, Range(1, 4)] int appliesPerFrame = 1;
+        [Tooltip("Árboles y rocas con colisión que se colocan por frame (repartidos para que no haya tirones).")]
+        [SerializeField, Range(4, 200)] int propSpawnsPerFrame = 24;
+        [Tooltip("Una sola superficie de agua que sigue al jugador, en vez de una por chunk (muchas menos llamadas de dibujo).")]
+        [SerializeField] bool singleWaterPlane = true;
+        [Tooltip("Baja la distancia de vista sola si los FPS no llegan, y la vuelve a subir cuando sobran.")]
+        [SerializeField] bool autoQuality = true;
+        [Tooltip("La distancia de vista no baja de esto con la calidad automática (metros).")]
+        [SerializeField] float minViewDistance = 112f;
+        [Tooltip("FPS que se quieren. 0 = los de las gafas (72 en Quest 2, si no se cambia).")]
+        [SerializeField] float targetFps = 0f;
         [Tooltip("Ajustar la niebla y la cámara a la distancia de vista.")]
         [SerializeField] bool setupFogAndCamera = true;
         [Tooltip("Minutos entre guardados automáticos.")]
@@ -91,6 +105,12 @@ namespace VRKit
         public UnityEvent onReady = new UnityEvent();
         public event Action<TerrainChunk> ChunkLoaded;
         public event Action<TerrainChunk> ChunkUnloaded;
+        /// <summary>Cada vez que se coloca o cambia la malla de un chunk (también al pasar a tener detalle).</summary>
+        public event Action<TerrainChunk> ChunkUpdated;
+        /// <summary>Al guardar la partida (para que otros guarden lo suyo: mapa…).</summary>
+        public event Action Saving;
+        /// <summary>Al empezar un mundo (también uno nuevo): lo de la partida anterior ya no vale.</summary>
+        public event Action WorldStarted;
 
         // ------------------------------------------------------------------ Estado
         class Entry
@@ -135,6 +155,7 @@ namespace VRKit
         readonly HashSet<PlacedObject> m_Placed = new HashSet<PlacedObject>();
         readonly HashSet<string> m_Discovered = new HashSet<string>();
         readonly List<Entry> m_Scratch = new List<Entry>();
+        readonly List<TerrainChunk> m_SpawnQueue = new List<TerrainChunk>();
 
         OpenTerrainGenerator m_Gen;
         TerrainPalette m_Palette;
@@ -147,13 +168,32 @@ namespace VRKit
         int m_Running, m_CenterX = int.MinValue, m_CenterZ = int.MinValue;
         bool m_Initialized, m_Ready, m_Despawning, m_LocomotionLocked;
         float m_NextRefresh, m_NextAutosave;
+        float m_MaxViewDistance, m_QualityTime, m_QualityFrames, m_QualitySum;
+        int m_SlowWindows, m_FastWindows;
+        Transform m_WaterPlane;
+        Mesh m_WaterPlaneMesh;
 
         // ------------------------------------------------------------------ Acceso
         public OpenTerrainGenerator Generator { get { return m_Gen; } }
         public OpenTerrainSettings Terrain { get { return terrain; } }
         public int Seed { get { return m_Gen != null ? m_Gen.Seed : seed; } }
         public float ChunkSize { get { return chunkSize; } }
-        public float ViewDistance { get { return viewDistance; } }
+        /// <summary>Hasta dónde se ve (metros). Se puede cambiar en marcha (opciones de calidad).</summary>
+        public float ViewDistance
+        {
+            get { return viewDistance; }
+            set
+            {
+                viewDistance = Mathf.Max(detailDistance + chunkSize, value);
+                if (setupFogAndCamera) SetupFogAndCamera();
+                m_NextRefresh = 0f;
+            }
+        }
+        public float DetailDistance { get { return detailDistance; } }
+        public float CaveSpacing { get { return caveSpacing; } }
+        public float CaveChance { get { return caveChance; } }
+        /// <summary>Color de suelo de cada bioma (para el mapa).</summary>
+        public Color32 GroundColor(Biome b) { return m_Palette != null ? m_Palette.ground[(int)b] : new Color32(128, 128, 128, 255); }
         public float WaterLevel { get { return terrain.waterLevel; } }
         public bool IsReady { get { return m_Ready; } }
         public string SaveFolder { get { return Path.Combine(Application.persistentDataPath, "vrkit_mundo_abierto", worldName); } }
@@ -172,11 +212,12 @@ namespace VRKit
 
         // ================================================================== Arranque
 
-        void Awake() { Instance = this; }
+        void Awake() { Instance = this; m_MaxViewDistance = viewDistance; }
 
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            if (m_WaterPlaneMesh != null) Destroy(m_WaterPlaneMesh);
         }
 
         void Start()
@@ -190,7 +231,7 @@ namespace VRKit
         {
             Instance = this;
             foreach (var e in m_Entries.Values) if (e.view != null) Destroy(e.view.gameObject);
-            m_Entries.Clear(); m_Queue.Clear(); m_Records.Clear();
+            m_Entries.Clear(); m_Queue.Clear(); m_Records.Clear(); m_SpawnQueue.Clear();
             Job dummy; while (m_Done.TryDequeue(out dummy)) { }
 
             int s = newSeed != 0 ? newSeed : UnityEngine.Random.Range(1, int.MaxValue);
@@ -211,6 +252,7 @@ namespace VRKit
             if (m_PoolRoot == null) { m_PoolRoot = new GameObject("Reserva de objetos").transform; m_PoolRoot.SetParent(transform, false); m_PoolRoot.gameObject.SetActive(false); }
             m_WaterTemplate = new LowPolyMeshData();
             TerrainMesher.BuildWater(chunkSize, terrain.waterLevel, 4, m_WaterTemplate);
+            if (singleWaterPlane) BuildWaterPlane();
 
             m_Initialized = true;
             m_Ready = false;
@@ -232,6 +274,51 @@ namespace VRKit
             var sky = SkyCycle.Instance;
             if (sky != null && m_Meta.timeOfDay >= 0f) sky.TimeOfDay = m_Meta.timeOfDay;
             m_NextAutosave = Time.time + autosaveMinutes * 60f;
+            if (WorldStarted != null) WorldStarted();
+        }
+
+        /// <summary>Una sola malla de agua grande (cuadrícula de 8 m) que sigue al jugador a saltos de 8 m.</summary>
+        void BuildWaterPlane()
+        {
+            if (waterMaterial == null) return;
+            if (m_WaterPlane == null)
+            {
+                var go = new GameObject("Agua");
+                go.layer = gameObject.layer;
+                go.transform.SetParent(transform, false);
+                go.AddComponent<MeshFilter>();
+                var r = go.AddComponent<MeshRenderer>();
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                m_WaterPlane = go.transform;
+                m_WaterPlaneMesh = new Mesh { name = "Agua" };
+                go.GetComponent<MeshFilter>().sharedMesh = m_WaterPlaneMesh;
+            }
+            m_WaterPlane.GetComponent<MeshRenderer>().sharedMaterial = waterMaterial;
+            int cells = Mathf.CeilToInt((m_MaxViewDistance + chunkSize) * 2f / 8f);
+            var d = new LowPolyMeshData();
+            TerrainMesher.BuildWater(cells * 8f, terrain.waterLevel, cells, d);
+            m_WaterPlaneMesh.Clear();
+            m_WaterPlaneMesh.indexFormat = d.vertices.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+            m_WaterPlaneMesh.SetVertices(d.vertices);
+            m_WaterPlaneMesh.SetNormals(d.normals);
+            m_WaterPlaneMesh.SetColors(d.colors);
+            m_WaterPlaneMesh.SetTriangles(d.triangles, 0);
+            m_WaterPlaneMesh.RecalculateBounds();
+            m_WaterPlane.localScale = Vector3.one;
+            m_WaterPlane.gameObject.SetActive(true);
+            m_WaterPlane.position = new Vector3(-cells * 4f, 0f, -cells * 4f);
+        }
+
+        void MoveWaterPlane(Vector3 p)
+        {
+            if (m_WaterPlane == null) return;
+            var mesh = m_WaterPlaneMesh;
+            float half = mesh.bounds.size.x * 0.5f;
+            // A saltos de 8 m, para que las olas (que van por posición) no «salten»
+            m_WaterPlane.position = new Vector3(Mathf.Round(p.x / 8f) * 8f - half, 0f, Mathf.Round(p.z / 8f) * 8f - half);
+            bool under = PlayerUnderground;
+            if (m_WaterPlane.gameObject.activeSelf == under) m_WaterPlane.gameObject.SetActive(!under);
         }
 
         void BuildRules()
@@ -330,6 +417,7 @@ namespace VRKit
             // 1. Colocar lo que han terminado los hilos
             Job job;
             for (int i = 0; i < appliesPerFrame && m_Done.TryDequeue(out job); i++) Apply(job);
+            SpawnPendingProps();
 
             // 2. ¿Qué chunks hacen falta?
             var p = ViewerPos();
@@ -351,6 +439,8 @@ namespace VRKit
             }
 
             GuardPlayer();
+            MoveWaterPlane(p);
+            if (autoQuality) AutoQuality();
 
             if (autosaveMinutes > 0f && Time.time >= m_NextAutosave) { m_NextAutosave = Time.time + autosaveMinutes * 60f; Save(); }
         }
@@ -364,7 +454,7 @@ namespace VRKit
                 int cx = m_CenterX + dx, cz = m_CenterZ + dz;
                 float d = DistanceToChunk(p, cx, cz);
                 if (d > viewDistance) continue;
-                int lod = d < detailDistance ? 0 : 1;
+                int lod = d < detailDistance ? 0 : d < midDistance ? 1 : 2;
                 long k = Key(cx, cz);
                 Entry e;
                 if (!m_Entries.TryGetValue(k, out e)) { e = new Entry { cx = cx, cz = cz }; m_Entries.Add(k, e); }
@@ -407,16 +497,16 @@ namespace VRKit
             m_Running++;
             var gen = m_Gen; var pal = m_Palette; var rules = m_RuleData; var geo = m_RuleGeometry;
             float size = chunkSize, cell = propCell, skirt = skirtDepth, spacing = caveSpacing, chance = caveChance;
-            int res = resolution, far = farResolution; bool flat = flatShading;
-            var water = m_WaterTemplate;
+            int res = resolution, far = farResolution, veryFar = Mathf.Min(veryFarResolution, farResolution); bool flat = flatShading;
+            var water = singleWaterPlane ? null : m_WaterTemplate;
             var ruleInfo = m_Rules;
             Task.Run(() =>
             {
                 try
                 {
                     job.mesh = new LowPolyMeshData();
-                    job.info = TerrainMesher.Build(gen, job.cx, job.cz, size, job.lod == 0 ? res : far, flat, pal, skirt, job.mesh);
-                    if (job.info.hasWater) job.water = water;
+                    job.info = TerrainMesher.Build(gen, job.cx, job.cz, size, job.lod == 0 ? res : job.lod == 1 ? far : veryFar, flat, pal, skirt, job.mesh);
+                    if (job.info.hasWater && water != null) job.water = water;
                     if (job.lod == 0)
                     {
                         job.props = new List<PropPlacement>();
@@ -481,6 +571,48 @@ namespace VRKit
             try { if (job.lod == 0) SpawnDetail(e, job); else DespawnDetail(e); } catch (Exception ex) { Debug.LogException(ex); }
 
             if (created && ChunkLoaded != null) ChunkLoaded(e.view);
+            if (ChunkUpdated != null) ChunkUpdated(e.view);
+        }
+
+        // ================================================================== Calidad automática
+
+        void AutoQuality()
+        {
+            if (!m_Ready || PlayerUnderground) return;
+            m_QualitySum += Time.unscaledDeltaTime;
+            m_QualityFrames++;
+            if (Time.unscaledTime < m_QualityTime) return;
+            m_QualityTime = Time.unscaledTime + 1f;
+            if (m_QualityFrames < 5) { m_QualitySum = 0f; m_QualityFrames = 0; return; }
+            float avg = m_QualitySum / m_QualityFrames;
+            m_QualitySum = 0f; m_QualityFrames = 0;
+            float target = 1f / (targetFps > 0f ? targetFps : VRPerformance.DisplayFrameRate);
+
+            if (avg > target * 1.12f) { m_SlowWindows++; m_FastWindows = 0; }
+            else if (avg < target * 1.03f) { m_FastWindows++; m_SlowWindows = 0; }
+            else { m_SlowWindows = 0; m_FastWindows = 0; }
+
+            float min = Mathf.Max(minViewDistance, detailDistance + chunkSize);
+            if (m_SlowWindows >= 2 && viewDistance > min)
+            {
+                ViewDistance = Mathf.Max(min, viewDistance - chunkSize * 0.5f);
+                m_SlowWindows = 0;
+                if (VRDevMode.Active) Debug.Log("[VRKit] Calidad automática: distancia de vista " + viewDistance.ToString("0") + " m");
+            }
+            else if (m_FastWindows >= 6 && viewDistance < m_MaxViewDistance)
+            {
+                ViewDistance = Mathf.Min(m_MaxViewDistance, viewDistance + chunkSize * 0.5f);
+                m_FastWindows = 0;
+            }
+        }
+
+        /// <summary>Cambia la distancia de vista máxima (la calidad automática no pasará de aquí).</summary>
+        public void SetMaxViewDistance(float meters)
+        {
+            m_MaxViewDistance = Mathf.Max(detailDistance + chunkSize, meters);
+            if (singleWaterPlane && m_Initialized) BuildWaterPlane();
+            ViewDistance = Mathf.Min(viewDistance, m_MaxViewDistance);
+            if (!autoQuality) ViewDistance = m_MaxViewDistance;
         }
 
         // ================================================================== Vegetación, cuevas y objetos colocados
@@ -512,22 +644,10 @@ namespace VRKit
                 view.props.Add(go);
             }
 
-            // 2. Por cada objeto: su colisión (si la tiene) o el objeto entero (si no se pudo combinar)
-            foreach (var pp in job.props)
-            {
-                var rule = m_Rules[pp.rule];
-                bool combined = m_RuleGeometry[pp.rule] != null;
-                if (combined && !rule.collide) continue;
-                var inst = Take(rule.prefab, view.propRoot);
-                inst.transform.localPosition = new Vector3(pp.x, pp.y - rule.sink * pp.scale, pp.z);
-                inst.transform.localRotation = Quaternion.Euler(0f, pp.yaw, 0f);
-                inst.transform.localScale = rule.prefab.transform.localScale * pp.scale;
-                foreach (var rend in inst.GetComponentsInChildren<Renderer>(true)) rend.enabled = !combined;
-                var wp = inst.GetComponent<WorldProp>();
-                if (wp == null) wp = inst.AddComponent<WorldProp>();
-                wp.ChunkKey = job.key; wp.Id = pp.id; wp.Rule = pp.rule; wp.SourcePrefab = rule.prefab;
-                view.props.Add(inst);
-            }
+            // 2. Árboles y rocas con colisión (o que no se pudieron combinar): unos pocos por frame
+            view.pendingProps = job.props;
+            view.pendingIndex = 0;
+            if (job.props != null && job.props.Count > 0 && !m_SpawnQueue.Contains(view)) m_SpawnQueue.Add(view);
 
             // 3. Cuevas
             if (caveEntrancePrefab != null && job.caves != null)
@@ -553,10 +673,42 @@ namespace VRKit
             }
         }
 
+        void SpawnPendingProps()
+        {
+            int budget = propSpawnsPerFrame;
+            while (budget > 0 && m_SpawnQueue.Count > 0)
+            {
+                var view = m_SpawnQueue[0];
+                if (view == null || view.pendingProps == null || view.pendingIndex >= view.pendingProps.Count)
+                {
+                    if (view != null) view.pendingProps = null;
+                    m_SpawnQueue.RemoveAt(0);
+                    continue;
+                }
+                var pp = view.pendingProps[view.pendingIndex++];
+                var rule = m_Rules[pp.rule];
+                bool combined = m_RuleGeometry[pp.rule] != null;
+                if (combined && !rule.collide) continue;      // ya está en la malla combinada y no choca
+                budget--;
+                var inst = Take(rule.prefab, view.propRoot);
+                inst.transform.localPosition = new Vector3(pp.x, pp.y - rule.sink * pp.scale, pp.z);
+                inst.transform.localRotation = Quaternion.Euler(0f, pp.yaw, 0f);
+                inst.transform.localScale = rule.prefab.transform.localScale * pp.scale;
+                foreach (var rend in inst.GetComponentsInChildren<Renderer>(true)) rend.enabled = !combined;
+                var wp = inst.GetComponent<WorldProp>();
+                if (wp == null) wp = inst.AddComponent<WorldProp>();
+                wp.ChunkKey = view.Key; wp.Id = pp.id; wp.Rule = pp.rule; wp.SourcePrefab = rule.prefab;
+                view.props.Add(inst);
+            }
+        }
+
         void DespawnDetail(Entry e)
         {
             var view = e.view;
-            if (view == null || !view.propsSpawned) return;
+            if (view == null) return;
+            view.pendingProps = null;
+            m_SpawnQueue.Remove(view);
+            if (!view.propsSpawned) return;
             SavePlacedOf(e);
             m_Despawning = true;
             foreach (var po in PlacedIn(e.cx, e.cz)) Destroy(po.gameObject);
@@ -585,6 +737,7 @@ namespace VRKit
                 Destroy(e.view.gameObject);
             }
             Record rec;
+            if (e.view != null) m_SpawnQueue.Remove(e.view);
             if (m_Records.TryGetValue(Key(e.cx, e.cz), out rec))
             {
                 if (rec.dirty) WriteRecord(Key(e.cx, e.cz), rec);
@@ -750,6 +903,7 @@ namespace VRKit
             if (SkyCycle.Instance != null) m_Meta.timeOfDay = SkyCycle.Instance.TimeOfDay;
             m_Meta.discovered = new List<string>(m_Discovered);
             WriteJson(Path.Combine(SaveFolder, "mundo.json"), m_Meta);
+            if (Saving != null) { try { Saving(); } catch (Exception ex) { Debug.LogException(ex); } }
         }
 
         /// <summary>Borra la partida y empieza otro mundo (semilla 0 = al azar).</summary>
@@ -763,13 +917,13 @@ namespace VRKit
         void OnApplicationPause(bool paused) { if (paused) Save(); }
         void OnApplicationQuit() { Save(); }
 
-        static T ReadJson<T>(string path) where T : class
+        internal static T ReadJson<T>(string path) where T : class
         {
             try { return File.Exists(path) ? JsonUtility.FromJson<T>(File.ReadAllText(path)) : null; }
             catch (Exception ex) { Debug.LogWarning("[VRKit] No se pudo leer " + path + ": " + ex.Message); return null; }
         }
 
-        static void WriteJson(string path, object data)
+        internal static void WriteJson(string path, object data)
         {
             try
             {

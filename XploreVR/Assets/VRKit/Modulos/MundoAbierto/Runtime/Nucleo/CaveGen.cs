@@ -40,18 +40,20 @@ namespace VRKit
             for (int gx = gx0; gx <= gx1; gx++)
             {
                 if (WorldNoise.Hash01(gx, gz, 11, gen.Seed) >= chance) continue;
-                // Se prueban unos pocos puntos de la casilla; el primero en una buena ladera se queda
+                // Se prueban unos pocos puntos de la casilla; el primero en una buena ladera se queda.
+                // Se elige mirando toda la casilla (no solo este trozo): así cada casilla tiene UNA cueva
+                // aunque toque varios chunks, y solo la añade el chunk donde cae.
                 for (int t = 0; t < 6; t++)
                 {
                     float px = (gx + 0.1f + 0.8f * WorldNoise.Hash01(gx, gz, 20 + t, gen.Seed)) * spacing;
                     float pz = (gz + 0.1f + 0.8f * WorldNoise.Hash01(gx, gz, 40 + t, gen.Seed)) * spacing;
-                    if (px < x0 || px >= x1 || pz < z0 || pz >= z1) continue;
                     float h = gen.Height(px, pz);
                     float slope = gen.SlopeAt(px, pz, 2f);
                     if (h < gen.Settings.waterLevel + 4f || slope < 14f || slope > 48f) continue;
                     float dx = gen.Height(px + 2f, pz) - gen.Height(px - 2f, pz);
                     float dz = gen.Height(px, pz + 2f) - gen.Height(px, pz - 2f);
                     float yaw = (float)(Math.Atan2(-dx, -dz) * 180.0 / Math.PI);   // cuesta abajo
+                    if (px < x0 || px >= x1 || pz < z0 || pz >= z1) break;     // es de otro chunk
                     long id = ((long)gx << 32) ^ (uint)gz;
                     output.Add(new CaveSite { id = id, x = px, y = h, z = pz, yaw = yaw, name = Name(id, gen.Seed) });
                     break;

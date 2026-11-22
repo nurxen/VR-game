@@ -61,6 +61,21 @@ Un mundo para explorar que no se acaba. Tiene montañas, colinas, valles y **rí
 | Sin bichos de noche | `CreatureSpawner › Max Night = 0` |
 | Más o menos cuevas | `OpenWorld › Cave Spacing`, `Cave Chance` |
 
+## El mapa
+- **Minimapa** en la muñeca izquierda: gira la muñeca y míralo como un reloj. Su norte apunta al norte de verdad.
+- **Mapa grande:** botón **Y** (o **M** en el teclado). Joystick izquierdo = mover, joystick derecho arriba/abajo = zoom, **X** = poner o quitar una marca donde estás, **Y** = cerrar.
+- Lo no explorado sale en niebla. Se descubren 48 m a tu alrededor (más si estás en alto). Se guarda en `mapa.json`, junto a la partida.
+- **Cuevas:** gris si has pasado cerca, negro con nombre si has llegado a la boca, y un **«?» amarillo** por la zona si hay una cerca que no has visto.
+- **Vuestros pueblos y sitios:** poned `MapMarker` en el prefab (icono y nombre). Al acercarte, «Descubres: …» y queda en el mapa. Para cosas colocadas con la semilla: `IMapFeatureSource` + `WorldMap.AddSource`.
+- ¿Escena ya montada? **GameObject › VRKit › Mundo abierto › Añadir mapa y mejoras de rendimiento**.
+
+## Rendimiento (Quest)
+- Ya viene: colisión del terreno en otro hilo, árboles con colisión a poquitos (24 por frame), una sola agua, 3 niveles de detalle (más allá de 130 m, 4 veces menos triángulos), NavMesh solo cuando cambia el suelo cercano y **calidad automática** (baja la distancia de vista si los FPS no llegan; `Auto Quality`, `Min View Distance`).
+- `VRPerformance` en el XR Origin: foveated rendering (y `Render Scale`).
+- **Tools › VRKit › Optimizar para Quest:** URP sin HDR ni sombras, MSAA 4×, sin post-procesado, OpenXR Single Pass Instanced y Foveated Rendering.
+- Ver FPS: modo desarrollador (F1 o los dos joysticks hundidos 1 s) y mira el minimapa.
+- Medid en una build en las gafas: desde el editor con Link los FPS dependen del ordenador.
+
 ## Vuestros modelos de Blender
 - **Vegetación:** un prefab con la malla y, si choca, un collider sencillo (cápsula o esfera).
   - En el FBX, marcad **Read/Write**: si no, no se puede juntar en la malla del chunk y se dibuja suelto, que es más lento.
@@ -70,7 +85,7 @@ Un mundo para explorar que no se acaba. Tiene montañas, colinas, valles y **rí
 - **Cueva:** la entrada mira hacia +Z (cuesta abajo).
 
 ## Cosas a tener en cuenta
-- **Rendimiento:** lo que más pesa es la distancia de vista y la densidad de árboles con colisión. Medid los FPS en las gafas con la consola de depuración del Básico.
+- **Rendimiento:** ver «Rendimiento (Quest)». Si aún va justo: baja `View Distance` o la densidad de árboles con colisión.
 - **Mareo:** el terreno tiene cuestas. Ofreced teletransporte (funciona sobre el terreno, no en paredes muy empinadas) y giro por saltos.
 - **Las cuevas son interiores aparte:** el terreno es una malla de alturas y no puede tener agujeros. Es el método más barato y fiable para Quest.
 - **El agua no se nada:** el fondo de los ríos es poco profundo y se puede andar. Nadar o barcas serían un añadido.

@@ -83,6 +83,9 @@ namespace VRKit.EditorTools
             { "WorldDiscovery", "discoverSound", "descubrir" },
             { "CaveSystem", "enterSound", "cueva_entrar" },
             { "CaveSystem", "caveAmbience", "amb_cueva" },
+            { "WorldMap", "openSound", "ui_click" },
+            { "WorldMap", "markSound", "boton_3d" },
+            { "WorldMap", "discoverSound", "descubrir" },
         };
 
         // Bioma (número del enum Biome) → música de día, de noche, ambiente de día y de noche

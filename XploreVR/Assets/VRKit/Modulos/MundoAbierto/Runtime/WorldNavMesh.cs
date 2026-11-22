@@ -20,6 +20,8 @@ namespace VRKit
         [SerializeField] LayerMask layers = ~0;
         [Tooltip("Tipo de agente (0 = Humanoid, el de por defecto).")]
         [SerializeField] int agentTypeId = 0;
+        [Tooltip("Como mucho una reconstrucción cada tantos segundos (usa CPU en segundo plano).")]
+        [SerializeField] float minSecondsBetween = 4f;
         [Tooltip("No crear NavMesh bajo el agua.")]
         [SerializeField] bool excludeWater = true;
 
@@ -43,16 +45,23 @@ namespace VRKit
 
         void OnDisable()
         {
-            if (m_World != null) { m_World.ChunkLoaded -= OnChunk; m_World.ChunkUnloaded -= OnChunk; m_World = null; }
+            if (m_World != null) { m_World.ChunkUpdated -= OnChunk; m_World = null; }
             m_Instance.Remove();
         }
 
-        void OnChunk(TerrainChunk c) { m_Dirty = true; }
+        // Solo importan los chunks con colisión (los cercanos) que caen dentro de la caja
+        void OnChunk(TerrainChunk c)
+        {
+            if (c == null || c.Lod != 0 || m_Dirty) return;
+            float half = Mathf.Max(size.x, size.z) * 0.5f + (m_World != null ? m_World.ChunkSize : 32f);
+            var p = c.transform.position;
+            if (Mathf.Abs(p.x - m_Center.x) < half && Mathf.Abs(p.z - m_Center.z) < half) m_Dirty = true;
+        }
 
         void Update()
         {
             var world = OpenWorld.Instance;
-            if (world != null && m_World != world) { m_World = world; world.ChunkLoaded += OnChunk; world.ChunkUnloaded += OnChunk; }
+            if (world != null && m_World != world) { m_World = world; world.ChunkUpdated += OnChunk; }
             var player = VRPlayer.Instance;
             if (world == null || player == null || !world.IsReady || IsBuilding || Time.time < m_NextAllowed) return;
             if (CaveSystem.Instance != null && CaveSystem.Instance.InCave) return;
@@ -60,7 +69,7 @@ namespace VRKit
             var flat = new Vector3(p.x, 0f, p.z);
             if (!m_Dirty && Vector3.Distance(flat, new Vector3(m_Center.x, 0f, m_Center.z)) < rebuildDistance) return;
             m_Dirty = false;
-            m_NextAllowed = Time.time + 3f;   // como mucho una vez cada 3 s
+            m_NextAllowed = Time.time + minSecondsBetween;
             m_Center = new Vector3(Mathf.Round(p.x / 4f) * 4f, p.y, Mathf.Round(p.z / 4f) * 4f);
             Rebuild();
         }
