@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01960a762a35ef64da96324a770b7e33, type: 3}
+  m_Name: Receta Pocion de vida
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.CraftingRecipe
+  recipeName: "Poci\xF3n de vida"
+  ingredients:
+  - itemId: seta_roja
+    count: 2
+  - itemId: cristal_azul
+    count: 1
+  result: {fileID: 1208603431287919981, guid: 558c2bc3acb53e64681cdea81b924bb0, type: 3}
+  resultCount: 1
+  objectiveId: pocion

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 60c7bace18564f5e4fa7a837cdefad2e
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 424090
+  packageName: Stylized Worlds Free Sampler - Meadow Village
+  packageVersion: 1.0
+  assetPath: Assets/StylizedWorldsSampler/Structures/Shaders/StructureCommon.hlsl
+  uploadId: 1053204

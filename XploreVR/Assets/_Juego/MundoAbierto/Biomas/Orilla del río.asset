@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1cd438924d4f24093b2fa8568ed368, type: 3}
+  m_Name: "Orilla del r\xEDo"
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.BiomeProfile
+  biome: 2
+  displayName: "Orilla del r\xEDo"
+  groundColor: {r: 0.34, g: 0.59, b: 0.29, a: 1}
+  groundTexture: 1
+  props:
+  - prefab: {fileID: 2207901789361127750, guid: a81f6eb2de2f8943c4936fd4f6bcb877, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 1.1
+    slope: {x: 0, y: 25}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 2
+    alignToSlope: 0
+    sink: 0.1
+    collide: 1
+  - prefab: {fileID: 8558153332396924123, guid: 07fcfb7f44ad57c29aae4a1c8acb7e3a, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.5
+    slope: {x: 0, y: 25}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1.5
+    alignToSlope: 0
+    sink: 0.1
+    collide: 1
+  - prefab: {fileID: 2120857162511519705, guid: 117aab2c408a9e21f3a98606559d964c, type: 3}
+    lod: -1
+    originalMaterial: 0
+    density: 5
+    slope: {x: 0, y: 35}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  - prefab: {fileID: 7548799301643707227, guid: cccb259904e1ce49d484bae4de12467c, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 1
+    slope: {x: 0, y: 25}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  - prefab: {fileID: 6626055388318361726, guid: c4eff7b6c07637a87bc69467f1a7a66b, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.5
+    slope: {x: 0, y: 30}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  dayMusic:
+  - {fileID: 8300000, guid: 0ab0ef5939f81bf46bb6c5cfb31706d4, type: 3}
+  - {fileID: 8300000, guid: f91572f947184dc47ad57129527b2d62, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 26daf74b3ec81f64c8d013e98222e796, type: 3}
+  dayAmbience: {fileID: 8300000, guid: de756ef90fa94524fa0f861d67c51b2a, type: 3}
+  nightAmbience: {fileID: 8300000, guid: de756ef90fa94524fa0f861d67c51b2a, type: 3}

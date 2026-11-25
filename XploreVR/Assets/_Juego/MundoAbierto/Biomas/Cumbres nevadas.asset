@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1cd438924d4f24093b2fa8568ed368, type: 3}
+  m_Name: Cumbres nevadas
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.BiomeProfile
+  biome: 5
+  displayName: Cumbres nevadas
+  groundColor: {r: 0.93, g: 0.94, b: 0.97, a: 1}
+  groundTexture: 1
+  props:
+  - prefab: {fileID: 7454250380340815047, guid: c5c34137dc9703c408d082c3c6d66878, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.2
+    slope: {x: 0, y: 30}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 1
+  - prefab: {fileID: 3629791428868206117, guid: 3e1b00f8ecf08b14eaae56974aac78c5, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.1
+    slope: {x: 0, y: 60}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 1
+    sink: 0.2
+    collide: 1
+  dayMusic:
+  - {fileID: 8300000, guid: 2c8516517d8f3db45b520c2a56e20e81, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 52bae13a430a39b4588c79b52399386a, type: 3}
+  dayAmbience: {fileID: 8300000, guid: 7a92b3d06289c2047b8c770d08e44da3, type: 3}
+  nightAmbience: {fileID: 8300000, guid: 7a92b3d06289c2047b8c770d08e44da3, type: 3}

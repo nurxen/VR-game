@@ -1,0 +1,524 @@
+#if UNITY_EDITOR
+using Object = UnityEngine.Object;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.AI;
+
+namespace VRKit.EditorTools
+{
+    /// <summary>
+    /// Menú GameObject › VRKit › Mundo abierto: la escena completa (terreno infinito, biomas, cielo con estrellas,
+    /// cuevas, criaturas, música) y los assets de ejemplo en Assets/_Juego/MundoAbierto (biomas, vegetación low poly,
+    /// criaturas y materiales), todos editables.
+    /// </summary>
+    public static partial class VRKitBuilder
+    {
+        const string kOW = kRoot + "Mundo abierto/";
+        const string kOWAssets = "Assets/_Juego/MundoAbierto";
+
+        [MenuItem(kOW + "Mundo abierto completo", false, 200)] static void MenuOpenWorld() { BuildOpenWorldScene(); }
+        [MenuItem(kOW + "Añadir mapa y mejoras de rendimiento (a una escena ya montada)", false, 210)]
+        static void MenuOpenWorldMap()
+        {
+            var a = EnsureOpenWorldAssets();
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            if (world == null)
+            {
+                EditorUtility.DisplayDialog("Mundo abierto", "No hay ningún OpenWorld en la escena abierta. Usad «Mundo abierto completo» o abrid vuestra escena.", "Vale");
+                return;
+            }
+            AddMapAndPerformance(a, world.gameObject);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(world.gameObject.scene);
+            EditorUtility.DisplayDialog("Mundo abierto",
+                "Hecho:\n\n· Mapa (WorldMap) en «" + world.name + "»: botón Y o tecla M, y minimapa en la muñeca izquierda.\n" +
+                "· VRPerformance en el XR Origin (foveated rendering).\n" +
+                "· El OpenWorld ya trae las mejoras nuevas (agua única, 3 niveles de detalle, calidad automática).\n\n" +
+                "Guardad la escena (Ctrl+S). Recomendado también: Tools › VRKit › Optimizar para Quest.", "Vale");
+        }
+
+        static void AddMapAndPerformance(OWAssets a, GameObject root)
+        {
+            var player = Object.FindFirstObjectByType<VRPlayer>();
+            if (player != null && player.GetComponent<VRPerformance>() == null) Undo.AddComponent<VRPerformance>(player.gameObject);
+            var map = Object.FindFirstObjectByType<WorldMap>();
+            if (map == null) map = Undo.AddComponent<WorldMap>(root);
+            SetRef(map, "mapMaterial", a.map);
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            if (world != null) SetRef(world, "texturedPropMaterial", a.propTextured);
+        }
+
+        /// <summary>
+        /// Marca Read/Write en los modelos seleccionados (o en todos los de las carpetas seleccionadas): el OpenWorld
+        /// necesita leer sus mallas para juntarlas en la vegetación combinada.
+        /// </summary>
+        [MenuItem("Tools/VRKit/Mundo abierto/Preparar modelos seleccionados (Read\u2215Write)", false, 40)]
+        static void MenuMakeReadable()
+        {
+            var paths = new List<string>();
+            foreach (var o in Selection.objects)
+            {
+                var p = AssetDatabase.GetAssetPath(o);
+                if (string.IsNullOrEmpty(p)) continue;
+                if (AssetDatabase.IsValidFolder(p))
+                    foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { p })) paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+                else if (o is GameObject)
+                {
+                    // Un prefab: sus modelos
+                    foreach (var dep in AssetDatabase.GetDependencies(p, true))
+                        if (AssetImporter.GetAtPath(dep) is ModelImporter) paths.Add(dep);
+                }
+            }
+            int changed = 0;
+            foreach (var p in new HashSet<string>(paths))
+            {
+                var mi = AssetImporter.GetAtPath(p) as ModelImporter;
+                if (mi == null || mi.isReadable) continue;
+                mi.isReadable = true;
+                mi.SaveAndReimport();
+                changed++;
+            }
+            EditorUtility.DisplayDialog("Preparar modelos",
+                paths.Count == 0 ? "Seleccionad en Project una carpeta de modelos o unos prefabs y volved a usar el menú."
+                                 : changed + " modelos marcados como Read/Write (" + (paths.Count - changed) + " ya lo estaban).", "Vale");
+        }
+
+        /// <summary>
+        /// Para materiales de otros paquetes que en la vegetación salen con el color cambiado: hace una copia con el shader
+        /// VRKit/PropTextura (con lo que se ha podido leer) en _Juego/MundoAbierto/MaterialesVegetacion y la apunta en
+        /// Material Overrides del OpenWorld. Luego se corrige a mano el Color o la Textura de la copia.
+        /// </summary>
+        [MenuItem("Tools/VRKit/Mundo abierto/Copia editable de materiales (prefabs o materiales seleccionados)", false, 41)]
+        static void MenuEditableMaterials()
+        {
+            var sources = new List<Material>();
+            foreach (var o in Selection.objects)
+            {
+                var m = o as Material;
+                if (m != null) { if (!sources.Contains(m)) sources.Add(m); continue; }
+                var go = o as GameObject;
+                if (go == null) continue;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    foreach (var sm in r.sharedMaterials)
+                        if (sm != null && !sources.Contains(sm)) sources.Add(sm);
+            }
+            sources.RemoveAll(PropMaterialReader.IsReady);
+            if (sources.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Copia editable de materiales", "Seleccionad en Project los prefabs (o los materiales) que salen con el color mal y volved a usar el menú.", "Vale");
+                return;
+            }
+            var shader = Shader.Find(PropMaterialReader.ShaderName);
+            if (shader == null) { EditorUtility.DisplayDialog("Copia editable de materiales", "No se encuentra el shader " + PropMaterialReader.ShaderName + ". ¿Está el módulo Mundo abierto actualizado?", "Vale"); return; }
+            string folder = kOWAssets + "/MaterialesVegetacion";
+            OWFolder(folder);
+
+            var world = Object.FindFirstObjectByType<OpenWorld>();
+            SerializedObject so = world != null ? new SerializedObject(world) : null;
+            var list = so != null ? so.FindProperty("materialOverrides") : null;
+            var made = new List<Object>();
+            var report = new System.Text.StringBuilder();
+            foreach (var src in sources)
+            {
+                string path = folder + "/" + src.name + ".mat";
+                var copy = AssetDatabase.LoadAssetAtPath<Material>(path);
+                var look = PropMaterialReader.Read(src);
+                if (copy == null)
+                {
+                    copy = new Material(shader) { name = src.name };
+                    PropMaterialReader.Apply(copy, look);
+                    AssetDatabase.CreateAsset(copy, path);
+                }
+                made.Add(copy);
+                report.AppendLine("· " + src.name + ": " + look);
+                if (list == null) continue;
+                bool found = false;
+                for (int i = 0; i < list.arraySize; i++)
+                {
+                    var e = list.GetArrayElementAtIndex(i);
+                    if (e.FindPropertyRelative("original").objectReferenceValue == src) { e.FindPropertyRelative("replacement").objectReferenceValue = copy; found = true; break; }
+                }
+                if (!found)
+                {
+                    list.InsertArrayElementAtIndex(list.arraySize);
+                    var e = list.GetArrayElementAtIndex(list.arraySize - 1);
+                    e.FindPropertyRelative("original").objectReferenceValue = src;
+                    e.FindPropertyRelative("replacement").objectReferenceValue = copy;
+                }
+            }
+            if (so != null) { so.ApplyModifiedProperties(); UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(world.gameObject.scene); }
+            AssetDatabase.SaveAssets();
+            Selection.objects = made.ToArray();
+            EditorUtility.DisplayDialog("Copia editable de materiales",
+                made.Count + " copias en " + folder + " (ya seleccionadas).\n\n" + report +
+                "\nAbrid cada una y corregid Color (o arrastrad la textura buena a Textura). Se aplica al darle a Play." +
+                (world == null ? "\n\nOJO: no hay OpenWorld en la escena abierta; abrid la escena del mundo y repetid el menú para apuntarlas." : "\n\nGuardad la escena (Ctrl+S)."), "Vale");
+        }
+
+        [MenuItem(kOW + "Crear o completar biomas, vegetación y materiales", false, 220)]
+        static void MenuOpenWorldAssets()
+        {
+            var a = EnsureOpenWorldAssets();
+            if (a.biomes.Count > 0) { Selection.activeObject = a.biomes[0]; EditorGUIUtility.PingObject(a.biomes[0]); }
+        }
+
+        class OWAssets
+        {
+            public Material terrain, props, water, stars, crystal, skybox, map, propTextured;
+            public readonly List<BiomeProfile> biomes = new List<BiomeProfile>();
+            public GameObject cave, deer, shadow;
+        }
+
+        static void OWFolder(string path)
+        {
+            string[] parts = path.Split('/');
+            string cur = parts[0];
+            for (int i = 1; i < parts.Length; i++)
+            {
+                string next = cur + "/" + parts[i];
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(cur, parts[i]);
+                cur = next;
+            }
+        }
+
+        static Material OWMaterial(string name, string shader, string fallback)
+        {
+            string path = kOWAssets + "/Materiales/" + name + ".mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m != null) return m;
+            var sh = Shader.Find(shader);
+            if (sh == null) { Debug.LogWarning("[VRKit] No encuentro el shader " + shader + " (¿proyecto sin URP?). Uso " + fallback + "."); sh = Shader.Find(fallback); }
+            m = new Material(sh);
+            AssetDatabase.CreateAsset(m, path);
+            return m;
+        }
+
+        static Mesh OWMesh(string name, LowPolyMeshData d)
+        {
+            string path = kOWAssets + "/Vegetacion/Mallas/" + name + ".asset";
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (mesh != null) return mesh;
+            mesh = new Mesh { name = name };
+            mesh.SetVertices(d.vertices);
+            mesh.SetNormals(d.normals);
+            mesh.SetColors(d.colors);
+            mesh.SetTriangles(d.triangles, 0);
+            mesh.RecalculateBounds();
+            AssetDatabase.CreateAsset(mesh, path);
+            return mesh;
+        }
+
+        static Color32 C(int r, int g, int b) { return new Color32((byte)r, (byte)g, (byte)b, 255); }
+
+        /// <summary>Prefab de vegetación: una malla low poly y, si hace falta, una colisión sencilla.</summary>
+        static GameObject PropPrefab(string name, System.Action<LowPolyMeshData> build, Material mat, string collider, Vector3 colliderSize)
+        {
+            string path = kOWAssets + "/Vegetacion/" + name + ".prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+            var d = new LowPolyMeshData();
+            build(d);
+            var go = new GameObject(name);
+            go.AddComponent<MeshFilter>().sharedMesh = OWMesh(name, d);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            if (collider == "capsula")
+            {
+                var c = go.AddComponent<CapsuleCollider>();
+                c.radius = colliderSize.x; c.height = colliderSize.y; c.center = new Vector3(0f, colliderSize.y * 0.5f, 0f);
+            }
+            else if (collider == "esfera")
+            {
+                var c = go.AddComponent<SphereCollider>();
+                c.radius = colliderSize.x; c.center = new Vector3(0f, colliderSize.y, 0f);
+            }
+            return SavePrefab(go, path);
+        }
+
+        static OWAssets EnsureOpenWorldAssets()
+        {
+            var a = new OWAssets();
+            OWFolder(kOWAssets + "/Materiales");
+            OWFolder(kOWAssets + "/Biomas");
+            OWFolder(kOWAssets + "/Vegetacion/Mallas");
+            OWFolder(kOWAssets + "/Criaturas");
+
+            a.terrain = OWMaterial("Terreno", "VRKit/TerrenoLowPoly", "Universal Render Pipeline/Simple Lit");
+            a.props = OWMaterial("Vegetación", "VRKit/TerrenoLowPoly", "Universal Render Pipeline/Simple Lit");
+            a.water = OWMaterial("Agua", "VRKit/Agua", "Universal Render Pipeline/Unlit");
+            a.stars = OWMaterial("Estrellas", "VRKit/Estrellas", "Sprites/Default");
+            a.crystal = OWMaterial("Cristal", "VRKit/Cristal", "Universal Render Pipeline/Unlit");
+            a.map = OWMaterial("Mapa", "VRKit/Mapa", "Universal Render Pipeline/Unlit");
+            a.propTextured = OWMaterial("VegetacionConTextura", "VRKit/PropTextura", "Universal Render Pipeline/Simple Lit");
+            a.skybox = OWMaterial("Cielo", "Skybox/Procedural", "Skybox/Procedural");
+            if (a.skybox.HasProperty("_SunSize")) a.skybox.SetFloat("_SunSize", 0.035f);
+            if (a.skybox.HasProperty("_AtmosphereThickness")) a.skybox.SetFloat("_AtmosphereThickness", 0.85f);
+
+            var trunk = C(110, 80, 52); var leaf = C(78, 140, 62); var leaf2 = C(96, 160, 70); var pine = C(46, 102, 62);
+            var snow = C(236, 240, 247); var rock = C(130, 126, 120); var grass = C(104, 166, 72); var birch = C(226, 222, 210);
+            var m = a.props;
+
+            var tree = PropPrefab("Árbol", d =>
+            {
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.24f, 0.16f, 2.6f, 6, trunk);
+                LowPolyShapes.Blob(d, new Vector3(0f, 3.4f, 0f), new Vector3(1.7f, 1.4f, 1.7f), 0.18f, 11, leaf);
+                LowPolyShapes.Blob(d, new Vector3(0.5f, 4.3f, 0.2f), new Vector3(1.1f, 1f, 1.1f), 0.2f, 12, leaf2);
+            }, m, "capsula", new Vector3(0.3f, 3f, 0f));
+            var pineTree = PropPrefab("Pino", d =>
+            {
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.2f, 0.12f, 1.4f, 6, trunk);
+                LowPolyShapes.Cone(d, new Vector3(0f, 1.1f, 0f), 1.5f, 2.2f, 7, pine);
+                LowPolyShapes.Cone(d, new Vector3(0f, 2.4f, 0f), 1.15f, 1.9f, 7, pine);
+                LowPolyShapes.Cone(d, new Vector3(0f, 3.6f, 0f), 0.75f, 1.6f, 7, pine);
+            }, m, "capsula", new Vector3(0.25f, 3f, 0f));
+            var snowPine = PropPrefab("Pino nevado", d =>
+            {
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.2f, 0.12f, 1.4f, 6, trunk);
+                LowPolyShapes.Cone(d, new Vector3(0f, 1.1f, 0f), 1.5f, 2.2f, 7, pine);
+                LowPolyShapes.Cone(d, new Vector3(0f, 2.4f, 0f), 1.15f, 1.9f, 7, snow);
+                LowPolyShapes.Cone(d, new Vector3(0f, 3.6f, 0f), 0.75f, 1.6f, 7, snow);
+            }, m, "capsula", new Vector3(0.25f, 3f, 0f));
+            var birchTree = PropPrefab("Abedul de ribera", d =>
+            {
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.17f, 0.11f, 3.2f, 6, birch);
+                LowPolyShapes.Blob(d, new Vector3(0f, 3.8f, 0f), new Vector3(1.2f, 1.6f, 1.2f), 0.2f, 13, C(130, 182, 84));
+            }, m, "capsula", new Vector3(0.22f, 3.4f, 0f));
+            var bush = PropPrefab("Arbusto", d => LowPolyShapes.Blob(d, new Vector3(0f, 0.35f, 0f), new Vector3(0.7f, 0.5f, 0.7f), 0.25f, 14, leaf), m, null, Vector3.zero);
+            var grassTuft = PropPrefab("Hierba", d =>
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    float an = i * 1.7f;
+                    LowPolyShapes.Cone(d, new Vector3(Mathf.Cos(an) * 0.12f, 0f, Mathf.Sin(an) * 0.12f), 0.05f, 0.35f + i * 0.06f, 4, grass);
+                }
+            }, m, null, Vector3.zero);
+            var flowers = PropPrefab("Flores", d =>
+            {
+                Color32[] petals = { C(236, 92, 104), C(250, 210, 80), C(170, 120, 230) };
+                for (int i = 0; i < 3; i++)
+                {
+                    float an = i * 2.1f;
+                    var p = new Vector3(Mathf.Cos(an) * 0.15f, 0f, Mathf.Sin(an) * 0.15f);
+                    LowPolyShapes.Cylinder(d, p, 0.015f, 0.015f, 0.3f, 4, grass, false);
+                    LowPolyShapes.Blob(d, p + new Vector3(0f, 0.33f, 0f), new Vector3(0.07f, 0.05f, 0.07f), 0f, 15 + i, petals[i], 0f);
+                }
+            }, m, null, Vector3.zero);
+            var smallRock = PropPrefab("Roca pequeña", d => LowPolyShapes.Blob(d, new Vector3(0f, 0.15f, 0f), new Vector3(0.45f, 0.3f, 0.4f), 0.3f, 16, rock), m, null, Vector3.zero);
+            var bigRock = PropPrefab("Roca grande", d => LowPolyShapes.Blob(d, new Vector3(0f, 0.7f, 0f), new Vector3(1.8f, 1.3f, 1.5f), 0.3f, 17, rock), m, "esfera", new Vector3(1.4f, 0.7f, 0f));
+            var cactus = PropPrefab("Cactus", d =>
+            {
+                var g = C(84, 150, 78);
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.22f, 0.2f, 2.2f, 7, g);
+                LowPolyShapes.Cylinder(d, new Vector3(0.38f, 0.9f, 0f), 0.13f, 0.12f, 0.8f, 6, g);
+                LowPolyShapes.Cylinder(d, new Vector3(-0.34f, 1.2f, 0f), 0.12f, 0.11f, 0.6f, 6, g);
+                LowPolyShapes.Cylinder(d, new Vector3(0.38f, 0.85f, 0f) + new Vector3(-0.2f, 0f, 0f), 0.08f, 0.08f, 0.12f, 5, g);
+            }, m, "capsula", new Vector3(0.25f, 2.2f, 0f));
+            var dryBush = PropPrefab("Arbusto seco", d =>
+            {
+                var dry = C(150, 128, 86);
+                for (int i = 0; i < 5; i++)
+                {
+                    float an = i * 1.25f;
+                    LowPolyShapes.Cone(d, new Vector3(Mathf.Cos(an) * 0.15f, 0f, Mathf.Sin(an) * 0.15f), 0.04f, 0.5f + (i % 2) * 0.2f, 4, dry);
+                }
+            }, m, null, Vector3.zero);
+            var mushroom = PropPrefab("Seta", d =>
+            {
+                LowPolyShapes.Cylinder(d, Vector3.zero, 0.05f, 0.04f, 0.18f, 6, C(236, 228, 214));
+                LowPolyShapes.Cone(d, new Vector3(0f, 0.16f, 0f), 0.14f, 0.12f, 7, C(200, 60, 50));
+            }, m, null, Vector3.zero);
+
+            // Biomas: color del suelo y qué sale (densidad = por cada 100 m²)
+            a.biomes.Add(Biome_(Biome.Pradera, "Pradera", new Color(0.46f, 0.67f, 0.31f), new[]
+            {
+                R(grassTuft, 6f, 0f, 35f, false, false), R(flowers, 1.2f, 0f, 25f, false, false), R(tree, 0.12f, 0f, 25f, false, true),
+                R(bush, 0.25f, 0f, 30f, false, false), R(smallRock, 0.15f, 0f, 40f, true, false), R(bigRock, 0.03f, 0f, 40f, true, true),
+            }));
+            a.biomes.Add(Biome_(Biome.Bosque, "Bosque", new Color(0.28f, 0.5f, 0.23f), new[]
+            {
+                R(tree, 1.4f, 0f, 30f, false, true), R(pineTree, 0.5f, 0f, 35f, false, true), R(bush, 0.7f, 0f, 35f, false, false),
+                R(mushroom, 0.35f, 0f, 25f, false, false), R(grassTuft, 2f, 0f, 35f, false, false), R(smallRock, 0.2f, 0f, 45f, true, false),
+            }));
+            a.biomes.Add(Biome_(Biome.Ribera, "Orilla del río", new Color(0.34f, 0.59f, 0.29f), new[]
+            {
+                R(birchTree, 1.1f, 0f, 25f, false, true, 2f), R(tree, 0.5f, 0f, 25f, false, true, 1.5f), R(grassTuft, 5f, 0f, 35f, false, false),
+                R(flowers, 1f, 0f, 25f, false, false), R(bush, 0.5f, 0f, 30f, false, false),
+            }));
+            a.biomes.Add(Biome_(Biome.Desierto, "Desierto", new Color(0.87f, 0.75f, 0.49f), new[]
+            {
+                R(cactus, 0.12f, 0f, 20f, false, true), R(dryBush, 0.35f, 0f, 30f, false, false), R(bigRock, 0.05f, 0f, 40f, true, true),
+                R(smallRock, 0.3f, 0f, 45f, true, false),
+            }));
+            a.biomes.Add(Biome_(Biome.Montana, "Montaña", new Color(0.5f, 0.47f, 0.44f), new[]
+            {
+                R(pineTree, 0.35f, 0f, 35f, false, true), R(bigRock, 0.15f, 0f, 60f, true, true), R(smallRock, 0.5f, 0f, 60f, true, false),
+                R(grassTuft, 0.6f, 0f, 35f, false, false),
+            }));
+            a.biomes.Add(Biome_(Biome.Nevado, "Cumbres nevadas", new Color(0.93f, 0.94f, 0.97f), new[]
+            {
+                R(snowPine, 0.2f, 0f, 30f, false, true), R(bigRock, 0.1f, 0f, 60f, true, true),
+            }));
+            a.biomes.Add(Biome_(Biome.Playa, "Playa", new Color(0.89f, 0.82f, 0.6f), new[]
+            {
+                R(smallRock, 0.1f, 0f, 30f, true, false), R(grassTuft, 0.4f, 0f, 25f, false, false),
+            }));
+            a.biomes.Add(Biome_(Biome.Fondo, "Fondo del agua", new Color(0.46f, 0.42f, 0.33f), new BiomePropRule[0]));
+
+            a.cave = CaveEntrancePrefab(m, rock);
+            a.deer = CreaturePrefab("Ciervo", CreatureMood.Pacifica, m, a.crystal);
+            a.shadow = CreaturePrefab("Sombra nocturna", CreatureMood.Hostil, m, a.crystal);
+            AssetDatabase.SaveAssets();
+            return a;
+        }
+
+        static BiomePropRule R(GameObject prefab, float density, float minSlope, float maxSlope, bool align, bool collide, float riverBoost = 1f)
+        {
+            return new BiomePropRule
+            {
+                prefab = prefab, density = density, slope = new Vector2(minSlope, maxSlope), altitude = new Vector2(0.4f, 500f),
+                scale = collide ? new Vector2(0.8f, 1.3f) : new Vector2(0.7f, 1.3f), alignToSlope = align, collide = collide,
+                riverBoost = riverBoost, sink = align ? 0.2f : 0.1f,
+            };
+        }
+
+        static BiomeProfile Biome_(Biome biome, string display, Color ground, BiomePropRule[] rules)
+        {
+            string path = kOWAssets + "/Biomas/" + display + ".asset";
+            var b = AssetDatabase.LoadAssetAtPath<BiomeProfile>(path);
+            if (b != null) return b;
+            b = ScriptableObject.CreateInstance<BiomeProfile>();
+            b.biome = biome; b.displayName = display; b.groundColor = ground;
+            b.props = new List<BiomePropRule>(rules);
+            AssetDatabase.CreateAsset(b, path);
+            return b;
+        }
+
+        static GameObject CaveEntrancePrefab(Material m, Color32 rock)
+        {
+            string path = kOWAssets + "/Entrada de cueva.prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+            var d = new LowPolyMeshData();
+            // Arco de rocas alrededor de un hueco oscuro, mirando a +Z
+            for (int i = 0; i <= 6; i++)
+            {
+                float an = Mathf.PI * i / 6f;
+                var p = new Vector3(Mathf.Cos(an) * 1.9f, Mathf.Sin(an) * 2.1f, 0f);
+                LowPolyShapes.Blob(d, p, new Vector3(0.85f, 0.8f, 1f), 0.3f, 40 + i, rock);
+            }
+            LowPolyShapes.Blob(d, new Vector3(0f, 1f, -0.4f), new Vector3(1.6f, 1.7f, 0.6f), 0.1f, 50, C(12, 10, 14), 0f);
+            LowPolyShapes.Blob(d, new Vector3(0f, 3f, -1f), new Vector3(3.2f, 1.8f, 2.4f), 0.3f, 51, rock);
+            var go = new GameObject("Entrada de cueva");
+            go.AddComponent<MeshFilter>().sharedMesh = OWMesh("Entrada de cueva", d);
+            go.AddComponent<MeshRenderer>().sharedMaterial = m;
+            go.AddComponent<CaveEntrance>();
+            var back = go.AddComponent<BoxCollider>();
+            back.center = new Vector3(0f, 2.2f, -1.4f); back.size = new Vector3(4.5f, 4f, 1.5f);
+            return SavePrefab(go, path);
+        }
+
+        static GameObject CreaturePrefab(string name, CreatureMood mood, Material m, Material glow)
+        {
+            string path = kOWAssets + "/Criaturas/" + name + ".prefab";
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
+            var d = new LowPolyMeshData();
+            var go = new GameObject(name);
+            var agent = go.AddComponent<NavMeshAgent>();
+            if (mood == CreatureMood.Pacifica)
+            {
+                var fur = C(150, 104, 66);
+                LowPolyShapes.Blob(d, new Vector3(0f, 1f, 0f), new Vector3(0.38f, 0.38f, 0.75f), 0.1f, 60, fur);
+                for (int i = 0; i < 4; i++)
+                    LowPolyShapes.Cylinder(d, new Vector3(i % 2 == 0 ? -0.2f : 0.2f, 0f, i < 2 ? 0.45f : -0.45f), 0.05f, 0.06f, 0.85f, 5, C(110, 76, 50), false);
+                LowPolyShapes.Blob(d, new Vector3(0f, 1.45f, 0.75f), new Vector3(0.18f, 0.2f, 0.28f), 0.1f, 61, fur);
+                LowPolyShapes.Cone(d, new Vector3(-0.1f, 1.6f, 0.7f), 0.03f, 0.35f, 4, C(220, 205, 180));
+                LowPolyShapes.Cone(d, new Vector3(0.1f, 1.6f, 0.7f), 0.03f, 0.35f, 4, C(220, 205, 180));
+                agent.speed = 2.2f; agent.radius = 0.4f; agent.height = 1.6f;
+            }
+            else
+            {
+                var dark = C(34, 30, 52);
+                LowPolyShapes.Blob(d, new Vector3(0f, 0.7f, 0f), new Vector3(0.55f, 0.6f, 0.55f), 0.35f, 62, dark);
+                LowPolyShapes.Blob(d, new Vector3(0f, 1.25f, 0.1f), new Vector3(0.35f, 0.32f, 0.35f), 0.3f, 63, dark);
+                agent.speed = 2.6f; agent.radius = 0.45f; agent.height = 1.5f;
+                // Ojos que brillan
+                var eyes = new LowPolyMeshData();
+                LowPolyShapes.Blob(eyes, new Vector3(-0.12f, 1.3f, 0.4f), new Vector3(0.06f, 0.05f, 0.03f), 0f, 64, C(255, 220, 120), 0f);
+                LowPolyShapes.Blob(eyes, new Vector3(0.12f, 1.3f, 0.4f), new Vector3(0.06f, 0.05f, 0.03f), 0f, 65, C(255, 220, 120), 0f);
+                var eg = new GameObject("Ojos");
+                eg.transform.SetParent(go.transform, false);
+                eg.AddComponent<MeshFilter>().sharedMesh = OWMesh(name + " ojos", eyes);
+                eg.AddComponent<MeshRenderer>().sharedMaterial = glow;
+                var h = go.AddComponent<Health>();
+                SetFloat(h, "maxHealth", 20f);
+            }
+            var body = new GameObject("Cuerpo");
+            body.transform.SetParent(go.transform, false);
+            body.AddComponent<MeshFilter>().sharedMesh = OWMesh(name, d);
+            body.AddComponent<MeshRenderer>().sharedMaterial = m;
+            var col = go.AddComponent<CapsuleCollider>();
+            col.radius = 0.4f; col.height = 1.5f; col.center = new Vector3(0f, 0.8f, 0f);
+            var c = go.AddComponent<WorldCreature>();
+            SetEnum(c, "mood", (int)mood);
+            if (mood == CreatureMood.Hostil) SetFloat(c, "damage", 6f);
+            return SavePrefab(go, path);
+        }
+
+        static void BuildOpenWorldScene()
+        {
+            var a = EnsureOpenWorldAssets();
+            var origin = EnsureXROrigin();
+            CreateGameSystems();
+            if (Object.FindFirstObjectByType<VRMenuManager>() == null) BuildMenu(false);
+            EnsureSubtitles();
+            if (origin != null)
+            {
+                // Modo desarrollador (los dos joysticks hundidos 1 s, o F1) y andar/girar con los gatillos
+                if (origin.GetComponent<VRDevMode>() == null) Undo.AddComponent<VRDevMode>(origin.gameObject);
+                if (origin.GetComponent<TriggerLocomotion>() == null) Undo.AddComponent<TriggerLocomotion>(origin.gameObject);
+            }
+
+            var root = new GameObject("Mundo abierto");
+            var world = root.AddComponent<OpenWorld>();
+            SetRef(world, "terrainMaterial", a.terrain);
+            SetRef(world, "waterMaterial", a.water);
+            SetRef(world, "propMaterial", a.props);
+            SetRef(world, "texturedPropMaterial", a.propTextured);
+            SetObjArray(world, "biomes", a.biomes.ConvertAll(b => (Object)b).ToArray());
+            SetRef(world, "caveEntrancePrefab", a.cave);
+
+            // Cielo: sol, luna y estrellas
+            Light sun = null;
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional) { sun = l; break; }
+            if (sun == null) { sun = new GameObject("Sol").AddComponent<Light>(); sun.type = LightType.Directional; sun.transform.SetParent(root.transform, false); }
+            sun.shadows = LightShadows.None;
+            var moon = new GameObject("Luna").AddComponent<Light>();
+            moon.type = LightType.Directional; moon.color = new Color(0.65f, 0.72f, 1f); moon.shadows = LightShadows.None;
+            moon.transform.SetParent(root.transform, false);
+            var sky = root.AddComponent<SkyCycle>();
+            SetRef(sky, "sun", sun);
+            SetRef(sky, "moon", moon);
+            SetRef(sky, "starMaterial", a.stars);
+            RenderSettings.skybox = a.skybox;
+            RenderSettings.sun = sun;
+
+            var caves = root.AddComponent<CaveSystem>();
+            SetRef(caves, "wallMaterial", a.terrain);
+            SetRef(caves, "crystalMaterial", a.crystal);
+
+            root.AddComponent<WorldNavMesh>();
+            var spawner = root.AddComponent<CreatureSpawner>();
+            SetObjArray(spawner, "dayCreatures", new Object[] { a.deer });
+            SetObjArray(spawner, "nightCreatures", new Object[] { a.shadow });
+            root.AddComponent<BiomeAudio>();
+            root.AddComponent<WorldDiscovery>();
+            AddMapAndPerformance(a, root);
+
+            Undo.RegisterCreatedObjectUndo(root, "VRKit");
+            Selection.activeGameObject = root;
+            Debug.Log("[VRKit] Mundo abierto montado. Play: apareces en tierra firme y el terreno se genera alrededor. " +
+                      "Biomas, vegetación y criaturas en " + kOWAssets + ". Para otro mundo: Seed en el OpenWorld (0 = al azar).");
+        }
+    }
+}
+#endif

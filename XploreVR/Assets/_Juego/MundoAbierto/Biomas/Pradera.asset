@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1cd438924d4f24093b2fa8568ed368, type: 3}
+  m_Name: Pradera
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.BiomeProfile
+  biome: 0
+  displayName: Pradera
+  groundColor: {r: 0.46, g: 0.67, b: 0.31, a: 1}
+  groundTexture: 1
+  props:
+  - prefab: {fileID: 7956280934098957061, guid: e87ff975baf1199e2b32b1751532fd80, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 6
+    slope: {x: 0, y: 35}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  - prefab: {fileID: 4556675222574803010, guid: 475a7fedbd7b7593cfb01155c85b7455, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 1.2
+    slope: {x: 0, y: 25}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  - prefab: {fileID: 2207901789361127750, guid: a81f6eb2de2f8943c4936fd4f6bcb877, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.12
+    slope: {x: 0, y: 25}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 1
+  - prefab: {fileID: 5039388461197353077, guid: d2cbccd4ce780fc1aebac3330fe08ba8, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.25
+    slope: {x: 0, y: 30}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  - prefab: {fileID: 2356458884278490569, guid: 5c5bc80c5235d389f1c5676b7d928b10, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.15
+    slope: {x: 0, y: 40}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 1
+    sink: 0.2
+    collide: 0
+  - prefab: {fileID: 3629791428868206117, guid: 7e0db0e4f782a3f09701a1ee49a9d466, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.03
+    slope: {x: 0, y: 40}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 1
+    sink: 0.2
+    collide: 1
+  dayMusic:
+  - {fileID: 8300000, guid: 0ab0ef5939f81bf46bb6c5cfb31706d4, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 52bae13a430a39b4588c79b52399386a, type: 3}
+  - {fileID: 8300000, guid: 26daf74b3ec81f64c8d013e98222e796, type: 3}
+  dayAmbience: {fileID: 8300000, guid: 21bbc853354cea34c80ef6adc1aeb438, type: 3}
+  nightAmbience: {fileID: 8300000, guid: 6514c6e81ff212d40a6fa6dc64c22c21, type: 3}

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1cd438924d4f24093b2fa8568ed368, type: 3}
+  m_Name: Fondo del agua
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.BiomeProfile
+  biome: 7
+  displayName: Fondo del agua
+  groundColor: {r: 0.46, g: 0.42, b: 0.33, a: 1}
+  props: []
+  dayMusic:
+  - {fileID: 8300000, guid: 0ab0ef5939f81bf46bb6c5cfb31706d4, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 26daf74b3ec81f64c8d013e98222e796, type: 3}
+  dayAmbience: {fileID: 8300000, guid: de756ef90fa94524fa0f861d67c51b2a, type: 3}
+  nightAmbience: {fileID: 8300000, guid: de756ef90fa94524fa0f861d67c51b2a, type: 3}

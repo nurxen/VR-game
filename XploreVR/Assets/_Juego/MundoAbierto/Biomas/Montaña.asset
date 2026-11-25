@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1cd438924d4f24093b2fa8568ed368, type: 3}
+  m_Name: "Monta\xF1a"
+  m_EditorClassIdentifier: Assembly-CSharp::VRKit.BiomeProfile
+  biome: 4
+  displayName: "Monta\xF1a"
+  groundColor: {r: 0.5, g: 0.47, b: 0.44, a: 1}
+  groundTexture: 1
+  props:
+  - prefab: {fileID: 7454250380340815047, guid: 6812de52024246bb099de6302f247904, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.35
+    slope: {x: 0, y: 35}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 1
+  - prefab: {fileID: 3629791428868206117, guid: 7e0db0e4f782a3f09701a1ee49a9d466, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.15
+    slope: {x: 0, y: 60}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.8, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 1
+    sink: 0.2
+    collide: 1
+  - prefab: {fileID: 2356458884278490569, guid: 5c5bc80c5235d389f1c5676b7d928b10, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.5
+    slope: {x: 0, y: 60}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 1
+    sink: 0.2
+    collide: 0
+  - prefab: {fileID: 8288870042975626424, guid: 5f8840cb8e4b126c8d894bfc0291ff31, type: 3}
+    lod: -1
+    originalMaterial: 1
+    density: 0.6
+    slope: {x: 0, y: 35}
+    altitude: {x: 0.4, y: 500}
+    scale: {x: 0.7, y: 1.3}
+    riverBoost: 1
+    alignToSlope: 0
+    sink: 0.1
+    collide: 0
+  dayMusic:
+  - {fileID: 8300000, guid: 2c8516517d8f3db45b520c2a56e20e81, type: 3}
+  nightMusic:
+  - {fileID: 8300000, guid: 26daf74b3ec81f64c8d013e98222e796, type: 3}
+  dayAmbience: {fileID: 8300000, guid: 0988f0816717fe840bb9c9180442dd74, type: 3}
+  nightAmbience: {fileID: 8300000, guid: 0988f0816717fe840bb9c9180442dd74, type: 3}
