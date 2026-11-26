@@ -478,6 +478,7 @@ namespace VRKit.EditorTools
                 if (origin.GetComponent<TriggerLocomotion>() == null) Undo.AddComponent<TriggerLocomotion>(origin.gameObject);
             }
 
+            // Mundo abierto: terreno, agua, biomas, vegetación y criaturas
             var root = new GameObject("Mundo abierto");
             var world = root.AddComponent<OpenWorld>();
             SetRef(world, "terrainMaterial", a.terrain);
